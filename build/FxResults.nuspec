@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+  <metadata>
+    <!-- Core Metadata -->
+    <id>FxResults</id>
+    <version>1.0.0</version>
+    <title>FxResults - Functional Results for .NET 8</title>
+    <authors>YourName</authors>
+    <owners>YourName</owners>
+    <license type="expression">MIT</license>
+    <projectUrl>https://github.com/yourname/FxResults</projectUrl>
+    <icon>icon.png</icon>
+    
+    <!-- Enhanced Description -->
+    <description>
+      A high-performance functional result pattern for .NET 8. 
+      Features source-generated serialization, async pipelines, 
+      and AOT-compatible error handling. Targets C# 12/F# 8.
+    </description>
+    
+    <!-- Modern Tags -->
+    <tags>result functional aot error-handling csharp12 fsharp8 dotnet8</tags>
+    
+    <!-- Repository Info -->
+    <repository 
+      type="git" 
+      url="https://github.com/yourname/FxResults"
+      branch="main"
+      commit="$(GitCommitId)" />
+    
+    <!-- .NET 8 Targeting -->
+    <targetFramework>net8.0</targetFramework>
+    
+    <!-- Advanced Dependencies -->
+    <dependencies>
+      <group targetFramework="net8.0">
+        <!-- Optional: Add high-performance deps -->
+        <dependency id="System.Text.Json" version="8.0.0" />
+        <dependency id="Microsoft.Bcl.AsyncInterfaces" version="8.0.0" />
+      </group>
+    </dependencies>
+    
+    <!-- AOT/Trimming Support -->
+    <packageType name="AotCompatible" />
+    <enableTrimAnalyzer>true</enableTrimAnalyzer>
+  </metadata>
+  
+  <files>
+    <!-- Primary Assembly -->
+    <file src="src\FxResults\bin\Release\net8.0\FxResults.dll" target="lib\net8.0" />
+    
+    <!-- AOT/Trimming Assets -->
+    <file src="src\FxResults\bin\Release\net8.0\FxResults.pdb" target="lib\net8.0" />
+    <file src="src\FxResults\bin\Release\net8.0\FxResults.xml" target="lib\net8.0" />
+    
+    <!-- Source Link -->
+    <file src="src\FxResults\bin\Release\net8.0\*.pdb" target="lib\net8.0" />
+    
+    <!-- Icon -->
+    <file src="build\icon.png" target="" />
+  </files>
+</package>
