@@ -5,7 +5,16 @@
 /// </summary>
 public class PublicErrorItem
 {
-    public string Code { get; set; } = "";
-    public string Message { get; set; } = "";
+    public PublicErrorItem(){}
+
+    public PublicErrorItem(string code, string message, string source)
+    {
+        Code = code; 
+        Message = message;
+        Source = source;
+    }
+
+    public string Code { get; set; }
+    public string Message { get; set; }
     public string? Source { get; set; }
 }

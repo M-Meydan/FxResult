@@ -7,8 +7,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="Extensions\ResultExtensions.cs" />
-    <Compile Remove="Extensions\ThenExtensions.cs" />
+    <Compile Remove="ResultExtensions\ResultExtensions.cs" />
+    <Compile Remove="ResultExtensions\ThenExtensions.cs" />
   </ItemGroup>
 
 </Project>

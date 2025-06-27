@@ -21,35 +21,15 @@
 public record Error(
     string Message,
     string Code = "error",
-    string? Caller = null,
     string? Source = null,
+    string? Caller = null,
     Exception? Exception = null)
 {
-    /// <summary>
-    /// Adds caller and optional source context to the error.
-    /// </summary>
-    public Error WithContext(string caller, string? source = null) =>
-        this with
-        {
-            Caller = Caller ?? caller,
-            Source = Source ?? source ?? caller
-        };
+    /// Sets or overrides the error's Source and Caller.
+    /// <param name="source">Component or module name</param>
+    /// <param name="caller">Method name where the error is being enriched</param>
+    public Error WithContext(string? source=null, string? caller = null) => this with { Source = source, Caller = caller };
 
-
-    // <summary>
-    /// Creates a new <see cref="Error"/> instance.
-    /// </summary>
-    /// <param name="message">The error message.</param>
-    /// <param name="code">The error code.</param>
-    /// <param name="caller">The caller where the error was handled.</param>
-    /// <param name="source">The origin of the error.</param>
-    /// <param name="ex">An optional exception associated with the error.</param>
-    /// <returns>A new <see cref="Error"/> instance.</returns>
-    /// <example>
-    /// var error = Error.Create("Failed", caller: nameof(MyMethod), source: "DB.Save", ex: exception);
-    /// </example>
-    public static Error Create(string message, string code = "error", string? caller = null, string? source = null, Exception? ex = null) =>
-        new(message, code, caller, source, ex);
 
     /// <summary>
     /// Implicitly converts a string message to an Error.

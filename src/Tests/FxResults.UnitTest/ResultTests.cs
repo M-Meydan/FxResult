@@ -1,8 +1,6 @@
-using NUnit.Framework;
 using FxResults.Core;
-using System;
 
-namespace FxResults.Tests
+namespace FxResults.UnitTest
 {
     [TestFixture]
     public class ResultTests
@@ -15,7 +13,7 @@ namespace FxResults.Tests
             
             // Act
             var result = new Result<string>(value);
-            
+
             // Assert
             Assert.Multiple(() =>
             {
@@ -24,61 +22,19 @@ namespace FxResults.Tests
                 Assert.That(result.Error, Is.Null);
             });
         }
-        
-        [Test]
-        public void Failure_Constructor_SetsPropertiesCorrectly()
+
+        [TestCase("Test error", "FAIL", "TestSource")]
+        public void Constructor_Failure_SetsProperties(string message, string code, string source)
         {
-            // Arrange
-            var error = new Error("Test error", "TEST_ERROR", "TestSource");
-            
-            // Act
+            var error = new Error(message, code, source);
             var result = new Result<string>(error);
-            
-            // Assert
-            Assert.Multiple(() =>
-            {
-                Assert.That(result.IsSuccess, Is.False);
-                Assert.That(result.Error, Is.EqualTo(error));
-                Assert.Throws<InvalidOperationException>(() => _ = result.Value);
-            });
+
+            Assert.That(result.IsSuccess, Is.False);
+            Assert.That(result.Error, Is.EqualTo(error));
+            Assert.Throws<InvalidOperationException>(() => _ = result.Value);
         }
-        
-        [Test]
-        public void Success_FactoryMethod_CreatesSuccessResult()
-        {
-            // Arrange
-            var value = 42;
-            
-            // Act
-            var result = Result.Success(value);
-            
-            // Assert
-            Assert.Multiple(() =>
-            {
-                Assert.That(result.IsSuccess, Is.True);
-                Assert.That(result.Value, Is.EqualTo(value));
-                Assert.That(result.Error, Is.Null);
-            });
-        }
-        
-        [Test]
-        public void Fail_WithError_CreatesFailureResult()
-        {
-            // Arrange
-            var error = new Error("Test error", "TEST_ERROR");
-            
-            // Act
-            var result = Result.Fail<int>(error);
-            
-            // Assert
-            Assert.Multiple(() =>
-            {
-                Assert.That(result.IsSuccess, Is.False);
-                Assert.That(result.Error, Is.EqualTo(error));
-                Assert.Throws<InvalidOperationException>(() => _ = result.Value);
-            });
-        }
-        
+
+
         [Test]
         public void Fail_WithMessage_CreatesFailureResult()
         {
@@ -86,7 +42,7 @@ namespace FxResults.Tests
             var message = "Test error message";
             
             // Act
-            var result = Result.Fail<int>(message);
+            var result = Result<int>.Fail(message);
             
             // Assert
             Assert.Multiple(() =>
@@ -99,33 +55,11 @@ namespace FxResults.Tests
         }
         
         [Test]
-        public void Fail_WithException_CreatesFailureResult()
-        {
-            // Arrange
-            var exception = new ArgumentException("Invalid argument");
-            var source = "TestSource";
-            
-            // Act
-            var result = Result.Fail<int>(exception, source);
-            
-            // Assert
-            Assert.Multiple(() =>
-            {
-                Assert.That(result.IsSuccess, Is.False);
-                Assert.That(result.Error!.Message, Is.EqualTo(exception.Message));
-                Assert.That(result.Error!.Code, Is.EqualTo(exception.GetType().Name));
-                Assert.That(result.Error!.Source, Is.EqualTo(source));
-                Assert.That(result.Error!.Exception, Is.EqualTo(exception));
-                Assert.Throws<InvalidOperationException>(() => _ = result.Value);
-            });
-        }
-        
-        [Test]
         public void TryGetValue_OnSuccessResult_ReturnsTrueAndValue()
         {
             // Arrange
             var value = "test value";
-            var result = Result.Success(value);
+            var result = Result<string>.Success(value);
             
             // Act
             var success = result.TryGetValue(out var retrievedValue);
@@ -143,7 +77,7 @@ namespace FxResults.Tests
         {
             // Arrange
             var error = new Error("Test error");
-            var result = Result.Fail<string>(error);
+            var result = Result<string>.Fail(error);
             
             // Act
             var success = result.TryGetValue(out var retrievedValue);
@@ -191,24 +125,10 @@ namespace FxResults.Tests
         }
         
         [Test]
-        public void Success_WithNullValue_CreatesSuccessResultWithNull()
-        {
-            // Arrange & Act
-            var result = Result.Success<string>(null!);
-            
-            // Assert
-            Assert.Multiple(() =>
-            {
-                Assert.That(result.IsSuccess, Is.True);
-                Assert.That(result.Value, Is.Null);
-            });
-        }
-        
-        [Test]
         public void Success_WithDefaultValue_CreatesSuccessResultWithDefault()
         {
             // Arrange & Act
-            var result = Result.Success(default(int));
+            var result = Result<int>.Success(default);
             
             // Assert
             Assert.Multiple(() =>
@@ -217,21 +137,162 @@ namespace FxResults.Tests
                 Assert.That(result.Value, Is.EqualTo(default(int)));
             });
         }
-        
+
         [Test]
-        public void TryGetValue_WithNullValue_ReturnsTrueAndNull()
+        public void Success_WithNullValue_TryGetValueAlsoReturnsTrueAndNull()
+        {
+            var result = Result<string>.Success(null!);
+
+            var success = result.TryGetValue(out var value);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.IsSuccess, Is.True);
+                Assert.That(result.Value, Is.Null);
+                Assert.That(success, Is.True);
+                Assert.That(value, Is.Null);
+            });
+        }
+
+        [Test]
+        public void Try_ReturnsSuccess_WhenFuncSucceeds()
+        {
+            var result = Result<string>.Try(() => "hello");
+
+            Assert.That(result.IsSuccess, Is.True);
+            Assert.That(result.Value, Is.EqualTo("hello"));
+        }
+
+        [Test]
+        public void Try_ReturnsFailure_WhenFuncThrows()
+        {
+            var result = Result<string>.Try(() => throw new InvalidOperationException("bad op"));
+
+            Assert.That(result.IsFailure, Is.True);
+            Assert.That(result.Error, Is.Not.Null);
+            Assert.That(result.Error!.Message, Is.EqualTo("bad op"));
+            Assert.That(result.Error.Code, Is.EqualTo("InvalidOperationException"));
+        }
+
+        [Test]
+        public async Task TryAsync_ReturnsSuccess_WhenFuncSucceeds()
+        {
+            var result = await Result<string>.TryAsync(() => Task.FromResult("async"));
+
+            Assert.That(result.IsSuccess, Is.True);
+            Assert.That(result.Value, Is.EqualTo("async"));
+        }
+
+        [Test]
+        public async Task TryAsync_ReturnsFailure_WhenFuncThrows()
+        {
+            var result = await Result<string>.TryAsync(() => throw new Exception("boom"));
+
+            Assert.That(result.IsFailure, Is.True);
+            Assert.That(result.Error, Is.Not.Null);
+            Assert.That(result.Error!.Message, Is.EqualTo("boom"));
+            Assert.That(result.Error.Code, Is.EqualTo("Exception"));
+        }
+
+        [Test]
+        public void Try_Action_ReturnsSuccess_WhenNoException()
+        {
+            var result = Result<Unit>.Try(() => Unit.Value);
+
+            Assert.That(result.IsSuccess, Is.True);
+            Assert.That(result.Value, Is.EqualTo(Unit.Value));
+        }
+
+        [Test]
+        public void Try_Action_ReturnsFailure_WhenExceptionThrown()
+        {
+            var result = Result<Unit>.Try(() => throw new ApplicationException("fail"));
+
+            Assert.That(result.IsFailure, Is.True);
+            Assert.That(result.Error!.Message, Is.EqualTo("fail"));
+        }
+
+        [Test]
+        public async Task TryAsync_Action_ReturnsSuccess_WhenNoException()
+        {
+            // Fix: Adjust the lambda expression to return the correct type
+            var result = await Result<Unit>.TryAsync(async () =>
+            {
+                await Task.Delay(1); // Simulate async operation
+                return Unit.Value; // Return Unit.Value directly
+            });
+
+            Assert.That(result.IsSuccess, Is.True);
+            Assert.That(result.Value, Is.EqualTo(Unit.Value));
+        }
+
+        [Test]
+        public async Task TryAsync_Action_ReturnsFailure_WhenExceptionThrown()
+        {
+            var result = await Result<Unit>.TryAsync(() => throw new Exception("error"));
+
+            Assert.That(result.IsFailure, Is.True);
+            Assert.That(result.Error!.Message, Is.EqualTo("error"));
+        }
+
+        [Test]
+        public void Try_WithInvalidOperationException_ReturnsFailureWithExceptionDetails()
         {
             // Arrange
-            var result = Result.Success<string>(null!);
+            var exceptionMessage = "Invalid operation occurred";
             
             // Act
-            var success = result.TryGetValue(out var retrievedValue);
+            var result = Result<string>.Try(() => throw new InvalidOperationException(exceptionMessage));
             
             // Assert
             Assert.Multiple(() =>
             {
-                Assert.That(success, Is.True);
-                Assert.That(retrievedValue, Is.Null);
+                Assert.That(result.IsFailure, Is.True);
+                Assert.That(result.Error!.Message, Is.EqualTo(exceptionMessage));
+                Assert.That(result.Error.Code, Is.EqualTo("InvalidOperationException"));
+                Assert.Throws<InvalidOperationException>(() => _ = result.Value);
+            });
+        }
+
+        [Test]
+        public void Try_WithArgumentException_ReturnsFailureWithExceptionDetails()
+        {
+            // Arrange
+            var paramName = "testParam";
+            var exceptionMessage = "Invalid argument provided";
+            
+            // Act
+            var result = Result<string>.Try(() => throw new ArgumentException(exceptionMessage, paramName));
+            
+            // Assert
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.IsFailure, Is.True);
+                Assert.That(result.Error!.Message, Does.Contain(exceptionMessage));
+                Assert.That(result.Error.Code, Is.EqualTo("ArgumentException"));
+            });
+        }
+
+        [Test]
+        public async Task TryAsync_WithAggregateException_ReturnsFailureWithInnerExceptionDetails()
+        {
+            // Arrange
+            var innerExceptionMessage = "Inner exception occurred";
+            
+            // Act
+            var result = await Result<string>.TryAsync(async () =>
+            {
+                await Task.Delay(1);
+                throw new AggregateException(new InvalidOperationException(innerExceptionMessage));
+            });
+            
+            // Assert
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.IsFailure, Is.True);
+                Assert.That(result.Error!.Message, Is.EqualTo($"One or more errors occurred. ({innerExceptionMessage})"));
+
+                Assert.That(result.Error.Code, Is.EqualTo("AggregateException"));
             });
         }
     }

@@ -1,10 +1,11 @@
 using NUnit.Framework;
 using FxResults.Api.Responses;
 using FxResults.Core;
-using FxResults.Extensions;
 using System.Collections.Generic;
+using FxResults.Api.Responses.Extensions;
+using System.Collections.Immutable;
 
-namespace FxResults.Tests
+namespace FxResults.UnitTest
 {
     [TestFixture]
     public class DtoConversionTests
@@ -74,7 +75,7 @@ namespace FxResults.Tests
         {
             // Arrange
             var value = "test value";
-            var result = Result.Success(value);
+            var result = Result<string>.Success(value);
             
             // Act
             var response = result.ToResponseDto();
@@ -93,7 +94,7 @@ namespace FxResults.Tests
         {
             // Arrange
             var error = new Error("Test error", "TEST_ERROR", "TestSource");
-            var result = Result.Fail<string>(error);
+            var result = Result<string>.Fail(error);
             
             // Act
             var response = result.ToResponseDto();
@@ -114,12 +115,16 @@ namespace FxResults.Tests
         {
             // Arrange
             var value = "test value";
-            var result = Result.Success(value);
-            var meta = new { Count = 5, Page = 1 };
-            
+            var result = Result<string>.Success(value);
+            var meta = new MetaInfo
+            {
+                Pagination = new PaginationInfo { TotalCount = 5, Page = 1 },
+                Additional = ImmutableDictionary<string, object?>.Empty
+            };
+
             // Act
             var response = result.ToResponseDto(meta);
-            
+
             // Assert
             Assert.Multiple(() =>
             {

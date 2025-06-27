@@ -1,5 +1,5 @@
-﻿using FxResults.Core;
-using FxResults.Extensions;
+﻿using FxResults.Api.Responses.Extensions;
+using FxResults.Core;
 
 namespace FxResults.Api.Responses;
 /// <summary>

@@ -1,143 +1,100 @@
-using NUnit.Framework;
-using FxResults.Core;
-using System;
-using System.Linq;
+using FxResults.ResultExtensions;
 
-namespace FxResults.Tests
+namespace FxResults.UnitTest
 {
     [TestFixture]
     public class PaginatedResultTests
     {
         [Test]
-        public void Constructor_SetsPropertiesCorrectly()
+        public void ToPagedResult_IQueryable_BuildsCorrectResultWithMeta()
         {
             // Arrange
-            var items = new[] { "item1", "item2", "item3" };
-            var totalCount = 10;
-            var page = 2;
-            var pageSize = 3;
-            
+            var data = Enumerable.Range(1, 25).AsQueryable();
+
             // Act
-            var result = new PaginatedResult<string>(items, totalCount, page, pageSize);
-            
+            var result = data.ToPagedResult(page: 2, pageSize: 10);
+
             // Assert
             Assert.Multiple(() =>
             {
-                Assert.That(result.Items, Is.EquivalentTo(items));
-                Assert.That(result.TotalCount, Is.EqualTo(totalCount));
-                Assert.That(result.Page, Is.EqualTo(page));
-                Assert.That(result.PageSize, Is.EqualTo(pageSize));
+                Assert.That(result.IsSuccess, Is.True);
+                Assert.That(result.Value.Count, Is.EqualTo(10));
+                Assert.That(result.Value.First(), Is.EqualTo(11));
+
+                var meta = result.Meta!;
+                Assert.That(meta.Value.Pagination.Page, Is.EqualTo(2));
+                Assert.That(meta.Value.Pagination.PageSize, Is.EqualTo(10));
+                Assert.That(meta.Value.Pagination.TotalCount, Is.EqualTo(25));
+                Assert.That(meta.Value.Pagination.TotalPages, Is.EqualTo(3));
+                Assert.That(meta.Value.Pagination.HasNextPage, Is.True);
+                Assert.That(meta.Value.Pagination.HasPreviousPage, Is.True);
             });
         }
-        
+
         [Test]
-        public void TotalPages_CalculatesCorrectly_WhenEvenlyDivisible()
+        public void ToPagedResult_IEnumerable_BuildsCorrectResultWithMeta()
         {
             // Arrange
-            var items = new[] { "item1", "item2", "item3" };
-            var totalCount = 9;
-            var pageSize = 3;
-            
+            var data = Enumerable.Range(1, 15);
+
             // Act
-            var result = new PaginatedResult<string>(items, totalCount, 1, pageSize);
-            
-            // Assert
-            Assert.That(result.TotalPages, Is.EqualTo(3));
-        }
-        
-        [Test]
-        public void TotalPages_CalculatesCorrectly_WhenNotEvenlyDivisible()
-        {
-            // Arrange
-            var items = new[] { "item1", "item2", "item3" };
-            var totalCount = 10;
-            var pageSize = 3;
-            
-            // Act
-            var result = new PaginatedResult<string>(items, totalCount, 1, pageSize);
-            
-            // Assert
-            Assert.That(result.TotalPages, Is.EqualTo(4));
-        }
-        
-        [Test]
-        public void Constructor_WithEmptyItems_CreatesEmptyItemsList()
-        {
-            // Arrange
-            var items = Array.Empty<string>();
-            var totalCount = 0;
-            var page = 1;
-            var pageSize = 10;
-            
-            // Act
-            var result = new PaginatedResult<string>(items, totalCount, page, pageSize);
-            
+            var result = data.ToPagedResult(page: 1, pageSize: 5);
+
             // Assert
             Assert.Multiple(() =>
             {
-                Assert.That(result.Items, Is.Empty);
-                Assert.That(result.TotalCount, Is.EqualTo(totalCount));
-                Assert.That(result.TotalPages, Is.EqualTo(0));
+                Assert.That(result.IsSuccess, Is.True);
+                Assert.That(result.Value.Count, Is.EqualTo(5));
+                Assert.That(result.Value.First(), Is.EqualTo(1));
+
+                var meta = result.Meta!;
+                Assert.That(meta.Value.Pagination.Page, Is.EqualTo(1));
+                Assert.That(meta.Value.Pagination.PageSize, Is.EqualTo(5));
+                Assert.That(meta.Value.Pagination.TotalCount, Is.EqualTo(15));
+                Assert.That(meta.Value.Pagination.TotalPages, Is.EqualTo(3));
+                Assert.That(meta.Value.Pagination.HasNextPage, Is.True);
+                Assert.That(meta.Value.Pagination.HasPreviousPage, Is.False);
             });
         }
-        
+
         [Test]
-        public void Constructor_WithPageSizeOfOne_CalculatesTotalPagesCorrectly()
+        public void ToPagedResult_AppendsCustomMetaData()
         {
             // Arrange
-            var items = new[] { "item1" };
-            var totalCount = 5;
-            var page = 1;
-            var pageSize = 1;
-            
+            var data = Enumerable.Range(1, 10).AsQueryable();
+
             // Act
-            var result = new PaginatedResult<string>(items, totalCount, page, pageSize);
-            
+            var result = data.ToPagedResult(1, 5)
+                .WithMetaData("apiVersion", "v1")
+                .WithMetaData("requestedBy", "tester");
+
             // Assert
-            Assert.That(result.TotalPages, Is.EqualTo(5));
+            var meta = result.Meta!;
+            Assert.That(meta.Value.Additional["apiVersion"], Is.EqualTo("v1"));
+            Assert.That(meta.Value.Additional["requestedBy"], Is.EqualTo("tester"));
         }
-        
-        [Test]
-        public void Constructor_WithTotalCountEqualToPageSize_CalculatesTotalPagesCorrectly()
+
+        [TestCaseSource(nameof(NegativePagingParametersTestCases))]
+        public void ToPagedResult_WithNegativeOrZeroParameters_DefaultsToMinimumValues(IEnumerable<int> source, int page, int pageSize, int expectedPage, int expectedPageSize, int expectedCount)
         {
-            // Arrange
-            var items = new[] { "item1", "item2", "item3" };
-            var totalCount = 3;
-            var page = 1;
-            var pageSize = 3;
-            
             // Act
-            var result = new PaginatedResult<string>(items, totalCount, page, pageSize);
-            
+            var result = source.ToPagedResult(page, pageSize);
+
             // Assert
-            Assert.That(result.TotalPages, Is.EqualTo(1));
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Value.Count, Is.EqualTo(expectedCount));
+                Assert.That(result.Meta!.Value.Pagination.Page, Is.EqualTo(expectedPage));
+                Assert.That(result.Meta!.Value.Pagination.PageSize, Is.EqualTo(expectedPageSize));
+            });
         }
-        
-        [Test]
-        public void Constructor_WithTotalCountLessThanPageSize_CalculatesTotalPagesCorrectly()
+
+        private static IEnumerable<object[]> NegativePagingParametersTestCases()
         {
-            // Arrange
-            var items = new[] { "item1", "item2" };
-            var totalCount = 2;
-            var page = 1;
-            var pageSize = 5;
-            
-            // Act
-            var result = new PaginatedResult<string>(items, totalCount, page, pageSize);
-            
-            // Assert
-            Assert.That(result.TotalPages, Is.EqualTo(1));
-        }
-        
-        [Test]
-        public void Items_IsReadOnly()
-        {
-            // Arrange
-            var items = new[] { "item1", "item2", "item3" };
-            var result = new PaginatedResult<string>(items, 10, 1, 3);
-            
-            // Act & Assert
-            Assert.That(result.Items, Is.TypeOf<System.Collections.ObjectModel.ReadOnlyCollection<string>>());
+            yield return new object[] { Enumerable.Range(1, 10), -1, 5, 1, 5, 5 };
+            yield return new object[] { Enumerable.Range(1, 10), 1, -5, 1, 1, 1 };
+            yield return new object[] { Enumerable.Range(1, 10), 0, 5, 1, 5, 5 };
+            yield return new object[] { Enumerable.Range(1, 10), 1, 0, 1, 1, 1 };
         }
     }
 }
