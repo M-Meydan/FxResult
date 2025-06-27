@@ -437,7 +437,7 @@ namespace FxResults.UnitTest.ComplexTests
                 .Then(s => s.ToUpper())  // skipped
                 .Tap(out var original)   // not set
                 .Then(s => $"should not run: {s}") // skipped
-                .OnSuccessAsync(res =>
+                .OnSuccessAsync(res => // skipped
                 {
                     log.Add($"Success:{res.Value}");
                     return Task.FromResult(res);
