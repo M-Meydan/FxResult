@@ -1,4 +1,10 @@
-# FxResults
+![NuGet](https://img.shields.io/nuget/v/FxResult.svg)
+![License](https://img.shields.io/github/license/M-Meydan/FxResults)
+![Build](https://img.shields.io/github/actions/workflow/status/M-Meydan/FxResults/build.yml?branch=main)
+
+# FxResult
+
+![NuGet](...) ![License](...) ![Build](...)
 
 **FxResults v1.0** — A result abstraction library for .NET.  
 Provides fluent, safe result handling without exceptions for flow control.
@@ -80,6 +86,13 @@ FxResults offers a rich set of features designed to streamline functional error 
 - **Rich Structured Metadata**: Attach arbitrary data using `MetaInfo`.
 - **Fluent Metadata Helpers**: `.WithMeta()`, `.WithMetaData()` for easy metadata manipulation.
 
+---
+
+## Installation
+
+```bash
+Install-Package FxResult
+```
 ---
 
 ## Result Types
