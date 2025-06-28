@@ -3,7 +3,7 @@ name: Build, Test, and Publish
 on:
   push:
     branches: [ main ]
-    tags: [ 'v*.*.*' ]  # triggers on version tags like v1.0.0
+    tags: [ 'v*.*.*' ]
 
 jobs:
   build:
@@ -19,16 +19,16 @@ jobs:
         dotnet-version: '8.0.x'
 
     - name: Restore dependencies
-      run: dotnet restore
+      run: dotnet restore src/FxResults/FxResults.sln
 
     - name: Build project
-      run: dotnet build --configuration Release --no-restore
+      run: dotnet build src/FxResults/FxResults.sln --configuration Release --no-restore
 
     - name: Run tests
-      run: dotnet test --configuration Release --no-build --verbosity normal
+      run: dotnet test src/FxResults/FxResults.sln --configuration Release --no-build --verbosity normal
 
     - name: Pack NuGet package
-      run: dotnet pack --configuration Release --no-build --output ./artifacts
+      run: dotnet pack src/FxResults/FxResults.csproj --configuration Release --no-build --output ./artifacts
 
     - name: Upload package as artifact
       uses: actions/upload-artifact@v4
