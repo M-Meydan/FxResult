@@ -90,7 +90,7 @@ FxResults offers a rich set of features designed to streamline functional error 
 
 ## Installation
 
-```bash
+```csharp
 Install-Package FxResult
 ```
 ---

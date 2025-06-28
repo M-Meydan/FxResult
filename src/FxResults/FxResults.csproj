@@ -7,17 +7,17 @@
 
     <!-- NuGet Metadata -->
     <PackageId>FxResult</PackageId>
-    <Version>1.0.3</Version>
+    <Version>1.0.4</Version>
     <Authors>M. Meydan</Authors>
     <Company>M. Meydan</Company>
     <Description>Fluent, exception-safe Result&lt;T&gt; handling for .NET with validation, chaining, and recovery.</Description>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageReadmeFile>README.NUGET.md</PackageReadmeFile>
     <PackageTags>result;functional;pipeline;error-handling;monad;csharp</PackageTags>
     <RepositoryUrl>https://github.com/M-Meydan/FxResults</RepositoryUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryType>git</RepositoryType>
   </PropertyGroup>
   <ItemGroup>
-    <None Include="README.md" Pack="true" PackagePath="" />
+    <None Include="README.NUGET.md" Pack="true" PackagePath="" />
   </ItemGroup>
 </Project>
