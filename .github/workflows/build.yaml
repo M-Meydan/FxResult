@@ -31,7 +31,7 @@ jobs:
       run: dotnet pack --configuration Release --no-build --output ./artifacts
 
     - name: Upload package as artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: FxResultNuGet
         path: ./artifacts/*.nupkg
