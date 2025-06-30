@@ -5,8 +5,8 @@ FxResult is a fluent, exception-safe result type for .NET that simplifies succes
 - ✅ `Result<T>` and `Result<Unit>` for consistent API responses
 - 🚫 Avoids exceptions in business logic — use `.Try()`, `.ThenTry()`, `.Ensure()`, `.FailIf()`
 - 🔄 Full sync/async support with `.OnSuccess()`, `.OnFailure()`, `.OnFinally()`
-- 📦 Metadata, pagination, and error modeling included
-- 🌐 GitHub: [FxResults Repository](https://github.com/M-Meydan/FxResults)
+- 📦 Metadata, pagination, and error modelling included
+- 🌐 GitHub: [FxResults Repository](https://github.com/M-Meydan/FxResult)
 
 Install:
 ```csharp
@@ -49,4 +49,4 @@ var result = R<string>     // R0: define Result<T> chain
 ### 🔁 Flow Overview
 Each step returns a Result<T> (R1 → R2 → ...). If a step succeeds, the chain continues and evaluates the next operation. If a step fails, execution short-circuits and the failure is passed through to the end of the chain — skipping intermediate steps, but still triggering any registered OnFailure and OnFinally hooks.
 
-For source, docs, and advanced usage, visit: 👉 https://github.com/M-Meydan/FxResults
+For source, docs, and advanced usage, visit: 👉 https://github.com/M-Meydan/FxResult
