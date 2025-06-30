@@ -1,12 +1,12 @@
 ![NuGet](https://img.shields.io/nuget/v/FxResult.svg)
-![License](https://img.shields.io/github/license/M-Meydan/FxResults)
-![Build](https://img.shields.io/github/actions/workflow/status/M-Meydan/FxResults/build.yml?branch=main)
+![License](https://img.shields.io/github/license/M-Meydan/FxResult)
+![Build](https://img.shields.io/github/actions/workflow/status/M-Meydan/FxResult/build.yml?branch=main)
 
 # FxResult
 
 ![NuGet](...) ![License](...) ![Build](...)
 
-**FxResults v1.0** — A result abstraction library for .NET.  
+**FxResult v1.0** — A result abstraction library for .NET.  
 Provides fluent, safe result handling without exceptions for flow control.
 
 ---
@@ -53,7 +53,7 @@ Provides fluent, safe result handling without exceptions for flow control.
 
 ## Purpose
 
-FxResults simplifies business logic, improves consistency, and enables safe, expressive workflows by avoiding exceptions for expected outcomes. It provides a consistent way to handle operations that can either succeed with a value or fail with a structured error.
+FxResult simplifies business logic, improves consistency, and enables safe, expressive workflows by avoiding exceptions for expected outcomes. It provides a consistent way to handle operations that can either succeed with a value or fail with a structured error.
 
 - **Uniform Return Types**: All services, handlers, and commands return `Result<T>`, creating a consistent and composable flow.
 - **Exception-Free Business Logic**: Use `.FailIf()`, `.ThenTry()`, and `.OnFailure()` to avoid `try/catch` for known failure conditions, keeping control flow explicit and testable.
@@ -72,7 +72,7 @@ FxResults simplifies business logic, improves consistency, and enables safe, exp
 
 ## Key Features
 
-FxResults offers a rich set of features designed to streamline functional error handling and data flow in .NET applications:
+FxResult offers a rich set of features designed to streamline functional error handling and data flow in .NET applications:
 
 - **Core Types**: `Result<Unit>` (for void operations), `Result<T>` (for operations returning a value), and a structured `Error` object.
 - **Unified Exception-Safe Factory**: Use Result.Try() and Result.TryAsync() to wrap logic into safe Result<T> or Result<Unit> outcomes.
@@ -97,7 +97,7 @@ Install-Package FxResult
 
 ## Result Types
 
-`Result<Unit>` and `Result<T>` are the foundation of FxResults. They represent the outcome of an operation — either success or failure — without relying on exceptions. They also support implicit conversions for simplified usage.
+`Result<Unit>` and `Result<T>` are the foundation of FxResult. They represent the outcome of an operation — either success or failure — without relying on exceptions. They also support implicit conversions for simplified usage.
 
 - **`Result<Unit>`**: Used when there's no return value, just success/failure. `Unit.Value` represents the successful void result.
 - **`Result<T>`**: Used when the operation returns a value (`T`) on success, or an `Error` on failure.
@@ -185,7 +185,7 @@ result = result
 
 ## Pagination Support
 
-FxResults provides built-in pagination helpers that return paged data wrapped in a `Result<List<T>>` with pagination metadata attached to `.Meta`.
+FxResult provides built-in pagination helpers that return paged data wrapped in a `Result<List<T>>` with pagination metadata attached to `.Meta`.
 
 ### Example
 
@@ -380,13 +380,13 @@ result.OnFailure(err =>
 
 ## Fluent Extensions
 
-FxResults provides a rich set of fluent extension methods for transforming, validating, branching, and reacting to `Result<T>` outcomes.
+FxResult provides a rich set of fluent extension methods for transforming, validating, branching, and reacting to `Result<T>` outcomes.
 
 Each extension is grouped by its role in the pipeline, and every method supports both sync and async flows where applicable.
 
 **How Result Chains Work**
 
-FxResults pipelines operate with short-circuiting semantics:
+FxResult pipelines operate with short-circuiting semantics:
 
 - Each step (`Then`, `Tap`, `FailIf`, `Ensure`, etc.) is only executed if the current `Result` is successful (`IsSuccess == true`)
 
