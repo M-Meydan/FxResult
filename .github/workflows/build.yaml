@@ -19,16 +19,16 @@ jobs:
         dotnet-version: '8.0.x'
 
     - name: Restore dependencies
-      run: dotnet restore src/FxResults/FxResults.sln
+      run: dotnet restore src/FxResult.sln
 
     - name: Build project
-      run: dotnet build src/FxResults/FxResults.sln --configuration Release --no-restore
+      run: dotnet build src/FxResult.sln --configuration Release --no-restore
 
     - name: Run tests
-      run: dotnet test src/FxResults/FxResults.sln --configuration Release --no-build --verbosity normal
+      run: dotnet test src/FxResult.sln --configuration Release --no-build --verbosity normal
 
     - name: Pack NuGet package
-      run: dotnet pack src/FxResults/FxResults.csproj --configuration Release --no-build --output ./artifacts
+      run: dotnet pack src/FxResult/FxResult.csproj --configuration Release --no-build --output ./artifacts
 
     - name: Upload package as artifact
       uses: actions/upload-artifact@v4
