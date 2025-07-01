@@ -418,13 +418,32 @@ This ensures:
 
 **Example**
 ```csharp
-var result = Result.Success(5)
-    .Then(x => x * 2)                         // → 10
-    .FailIf(x => x == 10, "BLOCK", "Stop")    // → Failure here
-    .Then(x => x + 1)                         // ❌ Skipped
-    .Tap(x => Console.WriteLine(x))           // ❌ Skipped
-    .OnFailure(err => Log(err))               // ✅ Executed
-    .OnFinally(_ => Console.WriteLine("Done"));// ✅ Always runs
+ var result = Result<string>.Success("5")                               	// R0: "5"
+        .FailIf(string.IsNullOrWhiteSpace, "NULL_INPUT", "Input missing") 	// ✅ passes — still "5"
+        .ThenTry(int.Parse)                                               	// ✅ parsed → 5
+        .Ensure(x => x <= 100, "TOO_LARGE", "Value must be 100 or less")  	// ✅ passes → 5
+        .FailIf(x => x < 1, "INVALID", "Must be > 0")                      	// ✅ passes → 5
+        .Tap(out var parsed)                                              	// 👈 captures 5 in `parsed`
+        .Then(x => x * 2)                                                 	// ✅ transformed → 10
+        .OnSuccess(r =>
+        {
+            Console.WriteLine($"✅ Success: Final value is {r.Value}, parsed from {parsed.Value}");
+            return r;                                                     	// returns Result<int> → 10
+        })
+        .OnFailure(r =>
+        {
+            Console.WriteLine($"❌ Failure: {r.Error!.Code} - {r.Error.Message}");
+            return Result<int>.Success(-1);                               	// fallback to -1 if failure
+        })
+        .OnFinally(r =>
+        {
+            Console.WriteLine("🔄 Flow complete (OnFinally triggered)");
+            return r;
+        });
+
+    result.IsSuccess.Should().BeTrue();
+    result.Value.Should().Be(10);
+
 ```
 
 
