@@ -31,6 +31,38 @@ public class FailIfTests
     }
 
     [Test]
+    public void FailIfNull_ReturnsFailure_ForNullableObject()
+    {
+        DateTime? nullableDate = null;
+        var result = nullableDate.FailIfNull("Date is required");
+
+        Assert.That(result.IsSuccess, Is.False);
+        Assert.That(result.Error!.Message, Is.EqualTo("Date is required"));
+        Assert.That(result.Error!.Code, Is.EqualTo("NULL_VALUE"));
+    }
+
+
+    [Test]
+    public void FailIfNull_ReturnsSuccess_ForNullableStructWithValue()
+    {
+        DateTime? nullableDate = DateTime.Now;
+        var result = Result<DateTime?>.Success(DateTime.Now).FailIfNull("Date is required");
+
+        Assert.That(result.IsSuccess, Is.True);
+        Assert.That(result.Value, Is.EqualTo(nullableDate.Value));
+    }
+
+    [Test]
+    public void FailIfNull_ReturnsSuccess_ForNullableClassWithValue()
+    {
+        Error? nullable = new Error("test error");
+        var result = Result<Error?>.Success(nullable).FailIfNull("Date is required");
+
+        Assert.That(result.IsSuccess, Is.True);
+        Assert.That(result.Value, Is.EqualTo(nullable));
+    }
+
+    [Test]
     public void FailIfNull_ChainedWithThen_SkipsThenOnNull()
     {
         string? value = null;

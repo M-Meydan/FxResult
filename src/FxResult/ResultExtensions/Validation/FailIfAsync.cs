@@ -9,6 +9,49 @@ namespace FxResult.ResultExtensions;
 /// </summary>
 public static partial class FailIfExtensions
 {
+
+    /// <summary>
+    /// Converts a Task<T?> to a Result<T> or failure if null (reference type).
+    /// </summary>
+    public static async Task<Result<T>> FailIfNullAsync<T>(this Task<T?> task,string message,string code = "NULL_VALUE", string? source = null, [CallerMemberName] string? caller = null) where T : class
+    {
+        var value = await task;
+        return value == null
+            ? new Error(message, code, source, caller)
+            : Result<T>.Success(value);
+    }
+
+    /// <summary>
+    /// Converts a Task<T?> to a Result<T> or failure if null (value type).
+    /// </summary>
+    public static async Task<Result<T>> FailIfNullAsync<T>(this Task<T?> task,string message,string code = "NULL_VALUE", string? source = null,[CallerMemberName] string? caller = null) where T : struct
+    {
+        var value = await task;
+        return value == null
+            ? new Error(message, code, source, caller)
+            : Result<T>.Success(value.Value);
+    }
+
+    public static async Task<Result<T>> FailIfNullAsync<T>(this Task<Result<T?>> task, string message, string code = "NULL_VALUE", string? source = null, [CallerMemberName] string? caller = null)
+    where T : struct
+    {
+        var result = await task;
+        if (!result.IsSuccess) return result.Error!;
+        return result.Value is null
+            ? new Error(message, code, source, caller)
+            : Result<T>.Success(result.Value.Value, result.Meta);
+    }
+
+    public static async Task<Result<T>> FailIfNullAsync<T>(this Task<Result<T?>> task, string message, string code = "NULL_VALUE", string? source = null, [CallerMemberName] string? caller = null)
+        where T : class
+    {
+        var result = await task;
+        if (!result.IsSuccess) return result.Error!;
+        return result.Value is null
+            ? new Error(message, code, source, caller)
+            : Result<T>.Success(result.Value, result.Meta);
+    }
+
     /// <summary>
     /// Asynchronously fails if the predicate returns true for the result value.
     /// <example>

@@ -28,6 +28,23 @@ public static partial class FailIfExtensions
     public static Result<T> FailIfNull<T>(this T? value, string message, string code = "NULL_VALUE", string? source = null, [CallerMemberName] string? caller = null) where T : struct
         => value == null ? new Error(message, code, source, caller) : value.Value;
 
+    public static Result<T> FailIfNull<T>(this Result<T?> result, string message, string code = "NULL_VALUE", string? source = null, [CallerMemberName] string? caller = null) where T : struct
+    {
+        if (!result.IsSuccess) return result.Error!;
+        return result.Value is null
+            ? new Error(message, code, source, caller)
+            : Result<T>.Success(result.Value.Value, result.Meta);
+    }
+
+    public static Result<T> FailIfNull<T>(this Result<T?> result, string message, string code = "NULL_VALUE", string? source = null, [CallerMemberName] string? caller = null) where T : class
+    {
+        if (!result.IsSuccess) return result.Error!;
+        return result.Value is null
+            ? new Error(message, code, source, caller)
+            : Result<T>.Success(result.Value, result.Meta);
+    }
+
+
     /// <summary>
     /// Fails if the predicate on the value is true.
     /// <example>

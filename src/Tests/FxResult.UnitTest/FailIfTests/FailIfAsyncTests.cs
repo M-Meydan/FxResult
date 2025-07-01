@@ -3,7 +3,7 @@ using FxResult.ResultExtensions;
 namespace FxResult.UnitTest.FailIfTests;
 
 [TestFixture]
-public class FailIfAsyncTests
+public class FailIfAsyncTests: ResultTestBase
 {
     [Test]
     public async Task FailIfAsync_PredicateTrue_ReturnsFailure()
@@ -96,6 +96,72 @@ public class FailIfAsyncTests
         Assert.That(errorResult.Error, Is.Not.Null);
         Assert.That(errorResult.Error!.Code, Is.EqualTo(nameof(InvalidOperationException)));
         Assert.That(errorResult.Error!.Message, Is.EqualTo("Predicate failed!"));
+    }
+
+    [Test]
+    public async Task FailIfAsync_NullableError_ReturnsFailure_WhenNull()
+    {
+        var errorTask = Task.FromResult<Error?>(default(Error?)); 
+        var result = await errorTask.FailIfNullAsync("Error object is required");
+
+        Assert.That(result.IsFailure, Is.True);
+        Assert.That(result.Error!.Message, Is.EqualTo("Error object is required"));
+        Assert.That(result.Error!.Code, Is.EqualTo("NULL_VALUE"));
+    }
+
+    [Test]
+    public async Task FailIfAsync_NullableError_ReturnsSuccess_WhenNotNull()
+    {
+        var error = new Error("Some error");
+        var errorTask = Task.FromResult<Error?>(error);
+        var result = await errorTask.FailIfNullAsync("Error object is required");
+
+        Assert.That(result.IsSuccess, Is.True);
+        Assert.That(result.Value, Is.EqualTo(error));
+    }
+
+    [Test]
+    public async Task FailIfAsync_NullableDateTime_ReturnsFailure_WhenNull()
+    {
+        var dateTask = Task.FromResult<DateTime?>(null);
+        var result = await dateTask.FailIfNullAsync("Date is required");
+
+        Assert.That(result.IsFailure, Is.True);
+        Assert.That(result.Error!.Message, Is.EqualTo("Date is required"));
+        Assert.That(result.Error!.Code, Is.EqualTo("NULL_VALUE"));
+    }
+
+    [Test]
+    public async Task FailIfAsync_NullableDateTime_ReturnsSuccess_WhenNotNull()
+    {
+        var now = DateTime.UtcNow;
+        var dateTask = Task.FromResult<DateTime?>(now);
+        var result = await dateTask.FailIfNullAsync("Date is required");
+
+        Assert.That(result.IsSuccess, Is.True);
+        Assert.That(result.Value, Is.EqualTo(now));
+    }
+
+    [Test]
+    public async Task FailIfAsync_ResultOfNullableError_PreservesFailure()
+    {
+        var fail = Result<Error?>.Fail("fail");
+        var resultTask = Task.FromResult(fail);
+        var result = await resultTask.FailIfNullAsync("Should not run");
+
+        Assert.That(result.IsFailure, Is.True);
+        Assert.That(result.Error!.Message, Is.EqualTo("fail"));
+    }
+
+    [Test]
+    public async Task FailIfAsync_ResultOfNullableDateTime_PreservesFailure()
+    {
+        var fail = Result<DateTime?>.Fail("fail");
+        var resultTask = Task.FromResult(fail);
+        var result = await resultTask.FailIfNullAsync("Should not run");
+
+        Assert.That(result.IsFailure, Is.True);
+        Assert.That(result.Error!.Message, Is.EqualTo("fail"));
     }
 
     #region EnsureAsync tests

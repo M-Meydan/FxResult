@@ -46,7 +46,7 @@ Provides fluent, safe result handling without exceptions for flow control.
 
 ## Version
 
-**Latest:** `v1.0`  
+**Latest:** `v1.1`  
 **Status:** Stable - Actively Maintained  
 
 ---
@@ -56,7 +56,7 @@ Provides fluent, safe result handling without exceptions for flow control.
 FxResult simplifies business logic, improves consistency, and enables safe, expressive workflows by avoiding exceptions for expected outcomes. It provides a consistent way to handle operations that can either succeed with a value or fail with a structured error.
 
 - **Uniform Return Types**: All services, handlers, and commands return `Result<T>`, creating a consistent and composable flow.
-- **Exception-Free Business Logic**: Use `.FailIf()`, `.ThenTry()`, and `.OnFailure()` to avoid `try/catch` for known failure conditions, keeping control flow explicit and testable.
+- **Exception-Free Business Logic**: Use .Try(), .FailIf(), .Ensure(), and .OnFailure() to handle errors and business rules without try/catch, keeping flow clear and testable.
 - **Seamless API & Infrastructure Integration**: Wrap any external or internal operation that can fail (DB, file, HTTP, 3rd-party) into a `Result` using `.ThenTry()` or `.FailIfNull()`.
 - **Clear Separation of Success & Failure**: `Result<T>` enforces the presence of either a `Value` or an `Error`, making handling explicit and enabling fluent pipelines via `.OnSuccess()`, `.OnFailure()`, and `.OnFinally()`.
 
@@ -74,17 +74,28 @@ FxResult simplifies business logic, improves consistency, and enables safe, expr
 
 FxResult offers a rich set of features designed to streamline functional error handling and data flow in .NET applications:
 
-- **Core Types**: `Result<Unit>` (for void operations), `Result<T>` (for operations returning a value), and a structured `Error` object.
-- **Unified Exception-Safe Factory**: Use Result.Try() and Result.TryAsync() to wrap logic into safe Result<T> or Result<Unit> outcomes.
-- **Fluent Chaining**: Methods like `Then`, `ThenTry`, `Tap`, `FailIf`, and `Ensure` for building expressive, exception-safe pipelines.
-- **Async-First Design**: Full `async/await` support for non-blocking operations.
-- **Side-Effect Hooks**: `.OnSuccess()`, `.OnFailure()`, and `.OnFinally()` to react to pipeline outcomes without breaking the flow.
-- **API-Layer DTO Conversion**: Seamless conversion to API-friendly DTOs (`ToResponseDto`, `ToPublicDto`).
-- **Custom Error Types**: Support for creating domain-specific `Error` subclasses.
-- **Extensible & Testable**: Designed for easy extension and unit testing.
-- **Built-in Pagination**: Helpers via `.ToPagedResult()` for efficient data pagination.
-- **Rich Structured Metadata**: Attach arbitrary data using `MetaInfo`.
-- **Fluent Metadata Helpers**: `.WithMeta()`, `.WithMetaData()` for easy metadata manipulation.
+- **Core Types**\
+	`Result<Unit>` (for void operations), `Result<T>` (for operations returning a value), and a structured `Error` object.
+- **Unified Exception-Safe Factory**\
+	Use Result.Try() and Result.TryAsync() to wrap logic into safe Result<T> or Result<Unit> outcomes.
+- **Fluent Chaining**\
+	Methods like `Then`, `ThenTry`, `Tap`, `FailIf`, and `Ensure` for building expressive, exception-safe pipelines.
+- **Async-First Design**\
+	Full `async/await` support for non-blocking operations.
+- **Side-Effect Hooks**\
+ `.OnSuccess()`, `.OnFailure()`, and `.OnFinally()` to react to pipeline outcomes without breaking the flow.
+- **API-Layer DTO Conversion**\
+ Seamless conversion to API-friendly DTOs (`ToResponseDto`, `ToPublicDto`).
+- **Custom Error Types**\
+	Support for creating domain-specific `Error` subclasses.
+- **Extensible & Testable**\ 
+	Designed for easy extension and unit testing.
+- **Built-in Pagination**\ 
+	Helpers via `.ToPagedResult()` for efficient data pagination.
+- **Rich Structured Metadata**\ 
+	Attach arbitrary data using `MetaInfo`.
+- **Fluent Metadata Helpers**\ 
+	`.WithMeta()`, `.WithMetaData()` for easy metadata manipulation.
 
 ---
 
