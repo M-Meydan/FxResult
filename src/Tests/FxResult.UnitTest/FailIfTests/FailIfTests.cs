@@ -46,10 +46,10 @@ public class FailIfTests
     public void FailIfNull_ReturnsSuccess_ForNullableStructWithValue()
     {
         DateTime? nullableDate = DateTime.Now;
-        var result = Result<DateTime?>.Success(DateTime.Now).FailIfNull("Date is required");
+        var result = Result<DateTime?>.Success(nullableDate).FailIfNull("Date is required");
 
         Assert.That(result.IsSuccess, Is.True);
-        Assert.That(result.Value, Is.EqualTo(nullableDate.Value));
+        Assert.That(result.Value, Is.EqualTo(nullableDate));
     }
 
     [Test]
