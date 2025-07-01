@@ -6,7 +6,7 @@
 
 ![NuGet](...) ![License](...) ![Build](...)
 
-**FxResult v1.0** — A result abstraction library for .NET.  
+**FxResult v1.1** — A result abstraction library for .NET.  
 Provides fluent, safe result handling without exceptions for flow control.
 
 ---
@@ -55,10 +55,14 @@ Provides fluent, safe result handling without exceptions for flow control.
 
 FxResult simplifies business logic, improves consistency, and enables safe, expressive workflows by avoiding exceptions for expected outcomes. It provides a consistent way to handle operations that can either succeed with a value or fail with a structured error.
 
-- **Uniform Return Types**: All services, handlers, and commands return `Result<T>`, creating a consistent and composable flow.
-- **Exception-Free Business Logic**: Use .Try(), .FailIf(), .Ensure(), and .OnFailure() to handle errors and business rules without try/catch, keeping flow clear and testable.
-- **Seamless API & Infrastructure Integration**: Wrap any external or internal operation that can fail (DB, file, HTTP, 3rd-party) into a `Result` using `.ThenTry()` or `.FailIfNull()`.
-- **Clear Separation of Success & Failure**: `Result<T>` enforces the presence of either a `Value` or an `Error`, making handling explicit and enabling fluent pipelines via `.OnSuccess()`, `.OnFailure()`, and `.OnFinally()`.
+- **Uniform Return Types**\
+	All services, handlers, and commands return `Result<T>`, creating a consistent and composable flow.
+- **Exception-Free Business Logic**\
+	Use .Try(), .FailIf(), .Ensure(), and .OnFailure() to handle errors and business rules without try/catch, keeping flow clear and testable.
+- **Seamless API & Infrastructure Integration**\
+	Wrap any external or internal operation that can fail (DB, file, HTTP, 3rd-party) into a `Result` using `.ThenTry()` or `.FailIfNull()`.
+- **Clear Separation of Success & Failure**\
+	`Result<T>` enforces the presence of either a `Value` or an `Error`, making handling explicit and enabling fluent pipelines via `.OnSuccess()`, `.OnFailure()`, and `.OnFinally()`.
 
 ### Why this matters in practice
 
@@ -85,16 +89,16 @@ FxResult offers a rich set of features designed to streamline functional error h
 - **Side-Effect Hooks**\
  `.OnSuccess()`, `.OnFailure()`, and `.OnFinally()` to react to pipeline outcomes without breaking the flow.
 - **API-Layer DTO Conversion**\
- Seamless conversion to API-friendly DTOs (`ToResponseDto`, `ToPublicDto`).
+	Seamless conversion to API-friendly DTOs (`ToResponseDto`, `ToPublicDto`).
 - **Custom Error Types**\
 	Support for creating domain-specific `Error` subclasses.
-- **Extensible & Testable**\ 
+- **Extensible & Testable**\
 	Designed for easy extension and unit testing.
-- **Built-in Pagination**\ 
+- **Built-in Pagination**\
 	Helpers via `.ToPagedResult()` for efficient data pagination.
-- **Rich Structured Metadata**\ 
+- **Rich Structured Metadata**\
 	Attach arbitrary data using `MetaInfo`.
-- **Fluent Metadata Helpers**\ 
+- **Fluent Metadata Helpers**\
 	`.WithMeta()`, `.WithMetaData()` for easy metadata manipulation.
 
 ---
@@ -119,16 +123,16 @@ Install-Package FxResult
 
 ```csharp
 // Creating a successful void result
-var ok = Result.Success<Unit>(Unit.Value);
+var ok = Result<Unit>.Success(Unit.Value);
 
 // Creating a failed void result
-var fail = Result.Fail<Unit>("Something went wrong");
+var fail = Result<Unit>.Fail("Something went wrong");
 
 // Creating a successful result with a value
-var val = Result.Success(42);
+var val = Result<int>.Success(42);
 
 // Creating a failed result with a structured error
-var err = Result.Fail<string>(new Error("Missing field", "INVALID"));
+var err = Result<string>.Fail(new Error("Missing field", "INVALID"));
 
 // Safe execution wrapper using Try
 var loaded = Result<string>.Try(() => LoadUserFile("users.json"));
@@ -299,18 +303,18 @@ var error = new Error("Unauthorized", "AUTH_ERROR", "AuthService", nameof(Login)
 Error simple = "Something went wrong"; // Implicit conversion
 
 // Example output:
-// Error { Code = "AUTH_ERROR", Message = "Unauthorized", Source = "AuthService", Caller = "Login" }
+// Error { Message = "Unauthorized", Code = "AUTH_ERROR",  Source = "AuthService", Caller = "Login" }
 
 public Result<User> Authenticate(string email, string password)
 {
     return userRepository.FindByEmail(email)
         .FailIfNull("USER_NOT_FOUND", "User not found", source: "AuthService")
-        .FailIf(u => !u.PasswordMatches(password), "INVALID_PASSWORD", "Incorrect password", "AuthService")
+        .FailIf(u => !u.PasswordMatches(password), "Incorrect password", "INVALID_PASSWORD", "AuthService")
         .Ensure(u => u.IsActive, "USER_INACTIVE");
 }
 
 // Example failed output:
-// Error { Code = "INVALID_PASSWORD", Message = "Incorrect password", Source = "AuthService", Caller = "Authenticate" }
+// Error { Message = "Incorrect password", Code = "INVALID_PASSWORD",  Source = "AuthService", Caller = "Authenticate" }
 ```
 ---
 ### Domain-Specific Errors: Validation
@@ -350,7 +354,7 @@ public Result<User> ValidateUser(User user) =>
 ```csharp
 void LogError(Error error, string traceId)
 {
-    logger.LogError("[{TraceId}] ❗ {Code} | {Message} | {Source}.{Caller}",
+    logger.LogError("[{TraceId}] | {Code} | {Message} | {Source}.{Caller}",
         traceId, error.Code, error.Message, error.Source, error.Caller);
 
     if (error.Exception is not null)
