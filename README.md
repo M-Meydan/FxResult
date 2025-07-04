@@ -58,7 +58,7 @@ FxResult simplifies business logic, improves consistency, and enables safe, expr
 - **Uniform Return Types**\
 	All services, handlers, and commands return `Result<T>`, creating a consistent and composable flow.
 - **Exception-Free Business Logic**\
-	Use .Try(), .FailIf(), .Ensure(), and .OnFailure() to handle errors and business rules without try/catch, keeping flow clear and testable.
+	Use `.Try()`, `.FailIf()`, `.Ensure()`, and `.OnFailure()` to handle errors and business rules without try/catch, keeping flow clear and testable.
 - **Seamless API & Infrastructure Integration**\
 	Wrap any external or internal operation that can fail (DB, file, HTTP, 3rd-party) into a `Result` using `.ThenTry()` or `.FailIfNull()`.
 - **Clear Separation of Success & Failure**\
