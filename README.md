@@ -4,8 +4,6 @@
 
 # FxResult
 
-![NuGet](...) ![License](...) ![Build](...)
-
 **FxResult v1.1** — A result abstraction library for .NET.  
 Provides fluent, safe result handling without exceptions for flow control.
 
