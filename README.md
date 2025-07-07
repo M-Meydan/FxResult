@@ -1,6 +1,6 @@
 ![NuGet](https://img.shields.io/nuget/v/FxResult.svg)
 ![License](https://img.shields.io/github/license/M-Meydan/FxResult)
-![Build](https://img.shields.io/github/actions/workflow/status/M-Meydan/FxResult/build.yml?branch=main)
+![Build](https://img.shields.io/github/actions/workflow/status/M-Meydan/FxResult/build.yaml?branch=main)
 
 # FxResult
 
