@@ -74,15 +74,23 @@ public class ErrorTests
     [Test]
     public void Location_ReturnsFileLineAndCaller_WhenAllPresent()
     {
-        var error = new Error("E", "m", FilePath: @"\src\MyService.cs", LineNumber: 42, Caller: "DoWork");
-        Assert.That(error.Location, Is.EqualTo($"MyService.cs:42 \u2192 DoWork"));
+        var path = @"\src\MyService.cs";
+        var file = Path.GetFileName(path);
+
+        var error = new Error("E", "m", FilePath: path, LineNumber: 42, Caller: "DoWork");
+
+        Assert.That(error.Location, Is.EqualTo($"{file}:42 \u2192 DoWork"));
     }
 
     [Test]
     public void Location_ReturnsFileAndLine_WhenCallerIsNull()
     {
-        var error = new Error("E", "m", FilePath: @"\src\MyService.cs", LineNumber: 42);
-        Assert.That(error.Location, Is.EqualTo("MyService.cs:42"));
+        var path = @"\src\MyService.cs";
+        var file = Path.GetFileName(path);
+
+        var error = new Error("E", "m", FilePath: path, LineNumber: 42);
+
+        Assert.That(error.Location, Is.EqualTo($"{file}:42"));
     }
 
     [Test]
