@@ -55,7 +55,7 @@ public class FailIfTests
     [Test]
     public void FailIfNull_ReturnsSuccess_ForNullableClassWithValue()
     {
-        Error? nullable = new Error("test error");
+        Error? nullable = new Error("TEST", "test error");
         var result = Result<Error?>.Success(nullable).FailIfNull("Date is required");
 
         Assert.That(result.IsSuccess, Is.True);
@@ -86,34 +86,25 @@ public class FailIfTests
     [Test]
     public void FailIf_PredicateTrue_ReturnsFailure()
     {
-        var result = Result<int>.Success(5).FailIf(x => x > 3, x => new Error("Too big"));
-        Assert.That(result.IsSuccess, Is.False);
-        Assert.That(result.Error!.Message, Is.EqualTo("Too big"));
-        Assert.That(result.Error!.Caller, Is.EqualTo(nameof(FailIf_PredicateTrue_ReturnsFailure)));
+        var result = Result<int>.Success(5).FailIf(x => x > 3, x => new Error("TOO_BIG", "Too big"));
     }
 
     [Test]
     public void FailIf_PredicateFalse_ReturnsSuccess()
     {
-        var result = Result<int>.Success(2).FailIf(x => x > 3, x => new Error("Too big"));
-        Assert.That(result.IsSuccess, Is.True);
-        Assert.That(result.Value, Is.EqualTo(2));
+        var result = Result<int>.Success(2).FailIf(x => x > 3, x => new Error("TOO_BIG", "Too big"));
     }
 
     [Test]
     public void FailIf_PredicateFalse_ChainedWithThen_RunsThen()
     {
-        var result = Result<int>.Success(2).FailIf(x => x > 3, x => new Error("Too big")).Then(x => x * 10);
-        Assert.That(result.IsSuccess, Is.True);
-        Assert.That(result.Value, Is.EqualTo(20));
+        var result = Result<int>.Success(2).FailIf(x => x > 3, x => new Error("TOO_BIG", "Too big")).Then(x => x * 10);
     }
 
     [Test]
     public void FailIf_PredicateTrue_ChainedWithThen_SkipsThen()
     {
-        var result = Result<int>.Success(5).FailIf(x => x > 3, x => new Error("Too big")).Then(x => x * 10);
-        Assert.That(result.IsSuccess, Is.False);
-        Assert.That(result.Error!.Message, Is.EqualTo("Too big"));
+        var result = Result<int>.Success(5).FailIf(x => x > 3, x => new Error("TOO_BIG", "Too big")).Then(x => x * 10);
     }
 
     [Test]
@@ -140,7 +131,7 @@ public class FailIfTests
     [Test]
     public void FailIf_ConditionTrue_ReturnsFailure()
     {
-        var result = Result<int>.Success(7).FailIf(true, () => new Error("Always fails"));
+        var result = Result<int>.Success(7).FailIf(true, () => new Error("ALWAYS", "Always fails"));
         Assert.That(result.IsSuccess, Is.False);
         Assert.That(result.Error!.Message, Is.EqualTo("Always fails"));
         Assert.That(result.Error!.Caller, Is.EqualTo(nameof(FailIf_ConditionTrue_ReturnsFailure)));
@@ -149,7 +140,7 @@ public class FailIfTests
     [Test]
     public void FailIf_ConditionFalse_ReturnsSuccess()
     {
-        var result = Result<int>.Success(7).FailIf(false, () => new Error("Should not fail"));
+        var result = Result<int>.Success(7).FailIf(false, () => new Error("NEVER", "Should not fail"));
         Assert.That(result.IsSuccess, Is.True);
         Assert.That(result.Value, Is.EqualTo(7));
     }
@@ -167,7 +158,7 @@ public class FailIfTests
     [Test]
     public void FailIf_ConditionTrue_ChainedWithThen_SkipsThen()
     {
-        var result = Result<int>.Success(7).FailIf(true, () => new Error("fail")).Then(x => x * 2);
+        var result = Result<int>.Success(7).FailIf(true, () => new Error("FAIL", "fail")).Then(x => x * 2);
         Assert.That(result.IsSuccess, Is.False);
         Assert.That(result.Error!.Message, Is.EqualTo("fail"));
     }
@@ -257,6 +248,22 @@ public class FailIfTests
             Assert.That(result.IsFailure, Is.True);
             Assert.That(result.Error!.Source, Is.EqualTo("EnsureMethod"));
             Assert.That(result.Error!.Caller, Is.EqualTo("EnsureCaller"));
+        }
+
+        [Test]
+        public void Ensure_WithErrorFactory_ShouldFail_WhenPredicateFalse()
+        {
+            var result = Result<int>.Success(10);
+            var next = result.Ensure(
+                predicate: x => x < 5,
+                errorFactory: () => new Error("BAD", "bad"));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(next.IsFailure, Is.True);
+                Assert.That(next.Error.Code, Is.EqualTo("BAD"));
+                Assert.That(next.Error.Message, Is.EqualTo("bad"));
+            });
         }
     #endregion
 

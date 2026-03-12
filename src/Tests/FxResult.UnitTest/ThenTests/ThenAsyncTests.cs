@@ -12,7 +12,7 @@ public class ThenAsyncTests : ResultTestBase
     [Test]
     public void SyncThen_OnFailure_PropagatesError()
     {
-        var initialError = new Error("Initial error");
+        var initialError = new Error("INIT", "Initial error");
         var result = Result<int>.Fail(initialError).Then(x => x * 2);
 
         Assert.Multiple(() =>
@@ -25,7 +25,7 @@ public class ThenAsyncTests : ResultTestBase
     [Test]
     public async Task AsyncThen_OnFailure_PropagatesError()
     {
-        var initialError = new Error("Initial error");
+        var initialError = new Error("INIT", "Initial error");
         var result = await Result<int>.Fail(initialError)
             .ThenAsync(async x =>
             {
@@ -56,7 +56,7 @@ public class ThenAsyncTests : ResultTestBase
     [Test]
     public void SyncThen_ResultReturningTransform_OnFailure_PropagatesError()
     {
-        var initialError = new Error("Initial error");
+        var initialError = new Error("INIT", "Initial error");
         var result = Result<int>.Fail(initialError)
             .Then(x => Result<int>.Success(x * 2));
 
@@ -116,7 +116,7 @@ public class ThenAsyncTests : ResultTestBase
     [Test]
     public async Task TaskThenAsync_TaskResultReturningTransform_OnFailure_PropagatesError()
     {
-        var initialError = new Error("Initial error");
+        var initialError = new Error("INIT", "Initial error");
         var result = await AsTask(Result<int>.Fail(initialError))
             .ThenAsync(async x =>
             {
@@ -191,6 +191,199 @@ public class ThenAsyncTests : ResultTestBase
     {
         log.Add($"Published value: {value}");
         return Unit.Value;
+    }
+
+    [Test]
+    public async Task ThenAsync_WithCancellationToken_ShouldPassToken_ToDelegate()
+    {
+        var result = Result<int>.Success(2);
+        using var cts = new CancellationTokenSource();
+        var observed = CancellationToken.None;
+
+        var next = await result.ThenAsync(async (x, ct) =>
+        {
+            await Task.Yield();
+            observed = ct;
+            return x + 1;
+        }, cts.Token);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(next.IsSuccess, Is.True);
+            Assert.That(next.Value, Is.EqualTo(3));
+            Assert.That(observed, Is.EqualTo(cts.Token));
+        });
+    }
+
+    [Test]
+    public async Task ThenAsync_WithCancellationToken_ResultReturning_PassesToken()
+    {
+        var result = Result<int>.Success(2);
+        using var cts = new CancellationTokenSource();
+        var observed = CancellationToken.None;
+
+        var next = await result.ThenAsync(async (x, ct) =>
+        {
+            await Task.Yield();
+            observed = ct;
+            return Result<int>.Success(x + 1);
+        }, cts.Token);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(next.IsSuccess, Is.True);
+            Assert.That(next.Value, Is.EqualTo(3));
+            Assert.That(observed, Is.EqualTo(cts.Token));
+        });
+    }
+
+    [Test]
+    public async Task ThenAsync_WithCancellationToken_PropagatesFailure()
+    {
+        var result = Result<int>.Fail("fail");
+        using var cts = new CancellationTokenSource();
+
+        var next = await result.ThenAsync(async (x, ct) =>
+        {
+            await Task.Yield();
+            return x + 1;
+        }, cts.Token);
+
+        Assert.That(next.IsFailure, Is.True);
+        Assert.That(next.Error.Message, Is.EqualTo("fail"));
+    }
+
+    [Test]
+    public async Task ThenAsync_Unit_FuncTask_ExecutesOnSuccess()
+    {
+        var result = Result<Unit>.Success(Unit.Value);
+
+        var next = await result.ThenAsync(async () =>
+        {
+            await Task.Yield();
+            return 42;
+        });
+
+        Assert.That(next.IsSuccess, Is.True);
+        Assert.That(next.Value, Is.EqualTo(42));
+    }
+
+    [Test]
+    public async Task ThenAsync_Unit_FuncTask_PropagatesFailure()
+    {
+        var result = Result<Unit>.Fail("fail");
+
+        var next = await result.ThenAsync(async () =>
+        {
+            await Task.Yield();
+            return 42;
+        });
+
+        Assert.That(next.IsFailure, Is.True);
+        Assert.That(next.Error.Message, Is.EqualTo("fail"));
+    }
+
+    [Test]
+    public async Task ThenAsync_Unit_FuncCancellationTokenTask_PassesToken()
+    {
+        var result = Result<Unit>.Success(Unit.Value);
+        using var cts = new CancellationTokenSource();
+        var observed = CancellationToken.None;
+
+        var next = await result.ThenAsync(async ct =>
+        {
+            await Task.Yield();
+            observed = ct;
+            return 7;
+        }, cts.Token);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(next.IsSuccess, Is.True);
+            Assert.That(next.Value, Is.EqualTo(7));
+            Assert.That(observed, Is.EqualTo(cts.Token));
+        });
+    }
+
+    [Test]
+    public async Task ThenAsync_Unit_ResultReturning_ExecutesOnSuccess()
+    {
+        var result = Result<Unit>.Success(Unit.Value);
+
+        var next = await result.ThenAsync(async () =>
+        {
+            await Task.Yield();
+            return Result<string>.Success("ok");
+        });
+
+        Assert.That(next.IsSuccess, Is.True);
+        Assert.That(next.Value, Is.EqualTo("ok"));
+    }
+
+    [Test]
+    public async Task ThenAsync_Unit_ResultReturning_PropagatesFailure()
+    {
+        var result = Result<Unit>.Fail("fail");
+
+        var next = await result.ThenAsync(async () =>
+        {
+            await Task.Yield();
+            return Result<string>.Success("ok");
+        });
+
+        Assert.That(next.IsFailure, Is.True);
+    }
+
+    [Test]
+    public async Task ThenAsync_Unit_ActionTask_ExecutesOnSuccess()
+    {
+        var result = Result<Unit>.Success(Unit.Value);
+        var called = false;
+
+        var next = await result.ThenAsync(async () =>
+        {
+            await Task.Yield();
+            called = true;
+        });
+
+        Assert.That(called, Is.True);
+        Assert.That(next.IsSuccess, Is.True);
+    }
+
+    [Test]
+    public async Task ThenAsync_Unit_ActionTask_SkipsOnFailure()
+    {
+        var result = Result<Unit>.Fail("fail");
+        var called = false;
+
+        var next = await result.ThenAsync(async () =>
+        {
+            await Task.Yield();
+            called = true;
+        });
+
+        Assert.That(called, Is.False);
+        Assert.That(next.IsFailure, Is.True);
+    }
+
+    [Test]
+    public async Task ThenAsync_Unit_ActionCancellationTokenTask_PassesToken()
+    {
+        var result = Result<Unit>.Success(Unit.Value);
+        using var cts = new CancellationTokenSource();
+        var observed = CancellationToken.None;
+
+        var next = await result.ThenAsync(async ct =>
+        {
+            await Task.Yield();
+            observed = ct;
+        }, cts.Token);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(next.IsSuccess, Is.True);
+            Assert.That(observed, Is.EqualTo(cts.Token));
+        });
     }
 
     // Async Result<Unit> for logging

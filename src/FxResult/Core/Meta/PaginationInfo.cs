@@ -1,4 +1,8 @@
-﻿namespace FxResult.Core;
+﻿using System.Diagnostics.CodeAnalysis;
+
+namespace FxResult.Core;
+
+[ExcludeFromCodeCoverage]
 public class PaginationInfo
 {
     /// <summary>

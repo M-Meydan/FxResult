@@ -112,7 +112,7 @@ public class FailIfAsyncTests: ResultTestBase
     [Test]
     public async Task FailIfAsync_NullableError_ReturnsSuccess_WhenNotNull()
     {
-        var error = new Error("Some error");
+        var error = new Error("TEST", "Some error");
         var errorTask = Task.FromResult<Error?>(error);
         var result = await errorTask.FailIfNullAsync("Error object is required");
 
@@ -220,6 +220,24 @@ public class FailIfAsyncTests: ResultTestBase
         Assert.That(result.IsFailure, Is.True);
         Assert.That(result.Error!.Source, Is.EqualTo("TestSource"));
         Assert.That(result.Error!.Caller, Is.EqualTo("TestCaller"));
+    }
+
+    [Test]
+    public async Task EnsureAsync_WithErrorFactory_ShouldFail_WhenAsyncPredicateFalse()
+    {
+        var result = Result<int>.Success(10);
+        var next = await result.EnsureAsync(async x =>
+        {
+            await Task.Yield();
+            return x < 5;
+        }, errorFactory: () => new Error("BAD", "bad"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(next.IsFailure, Is.True);
+            Assert.That(next.Error.Code, Is.EqualTo("BAD"));
+            Assert.That(next.Error.Message, Is.EqualTo("bad"));
+        });
     }
 
     #endregion

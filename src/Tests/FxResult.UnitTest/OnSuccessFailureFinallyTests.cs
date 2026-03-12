@@ -1,5 +1,6 @@
 using FxResult.Core;
 using FxResult.ResultExtensions;
+using FxResult.ResultExtensions.SideEffects;
 
 
 namespace FxResult.UnitTest
@@ -36,7 +37,7 @@ namespace FxResult.UnitTest
         public void OnSuccess_DoesNotExecuteActionOnFailureResult()
         {
             // Arrange
-            var error = new Error("Test error");
+            var error = new Error("TEST", "Test error");
             var result = Result<int>.Fail(error);
             var actionExecuted = false;
             
@@ -110,7 +111,7 @@ namespace FxResult.UnitTest
         public async Task OnSuccessAsync_DoesNotExecuteActionOnFailureResult()
         {
             // Arrange
-            var error = new Error("Test error");
+            var error = new Error("TEST", "Test error");
             var result = Result<int>.Fail(error);
             var actionExecuted = false;
             
@@ -159,7 +160,7 @@ namespace FxResult.UnitTest
         public void OnFailure_ExecutesActionOnFailureResult()
         {
             // Arrange
-            var error = new Error("Test error");
+            var error = new Error("TEST", "Test error");
             var result = Result<int>.Fail(error);
             var actionExecuted = false;
             
@@ -208,7 +209,7 @@ namespace FxResult.UnitTest
         public async Task OnFailureAsync_ExecutesActionOnFailureResult()
         {
             // Arrange
-            var error = new Error("Test error");
+            var error = new Error("TEST", "Test error");
             var result = Result<int>.Fail(error);
             var actionExecuted = false;
             
@@ -284,7 +285,7 @@ namespace FxResult.UnitTest
         public void OnFinally_ExecutesActionOnFailureResult()
         {
             // Arrange
-            var error = new Error("Test error");
+            var error = new Error("TEST", "Test error");
             var result = Result<int>.Fail(error);
             var actionExecuted = false;
             
@@ -335,7 +336,7 @@ namespace FxResult.UnitTest
         public async Task OnFinallyAsync_ExecutesActionOnFailureResult()
         {
             // Arrange
-            var error = new Error("Test error");
+            var error = new Error("TEST", "Test error");
             var result = Result<int>.Fail(error);
             var actionExecuted = false;
             
@@ -366,7 +367,7 @@ namespace FxResult.UnitTest
             // Act
             var modified = original.OnFailure(_ =>
             {
-                return new Error("replaced", "REPLACED");
+                return new Error("REPLACED", "replaced");
             });
 
             // Assert
@@ -378,6 +379,245 @@ namespace FxResult.UnitTest
             });
         }
 
+        [Test]
+        public void OnSuccess_ShouldTransformValue_WhenSuccess()
+        {
+            var result = Result<int>.Success(2);
+            var next = result.OnSuccess(r => r.Then(x => x + 1));
+
+            Assert.That(next.IsSuccess, Is.True);
+            Assert.That(next.Value, Is.EqualTo(3));
+        }
+
+        [Test]
+        public void OnFailure_ShouldRecoverToSuccess_WhenFailure()
+        {
+            var result = Result<int>.Fail(new Error("E", "m"));
+            var next = result.OnFailure(_ => Result<int>.Success(99));
+
+            Assert.That(next.IsSuccess, Is.True);
+            Assert.That(next.Value, Is.EqualTo(99));
+        }
+
+        [Test]
+        public void OnFinally_ShouldEnrichError_Always()
+        {
+            var result = Result<int>.Fail(new Error("E", "m"));
+            var next = result.OnFinally(r =>
+                Result<int>.Fail(r.Error.WithContext(source: "S", caller: "C")));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(next.IsFailure, Is.True);
+                Assert.That(next.Error.Source, Is.EqualTo("S"));
+                Assert.That(next.Error.Caller, Is.EqualTo("C"));
+            });
+        }
+
+        [Test]
+        public async Task OnSuccessAsync_WithCancellationToken_ExecutesAction()
+        {
+            var result = Result<int>.Success(42);
+            using var cts = new CancellationTokenSource();
+            var observed = CancellationToken.None;
+
+            var next = await result.OnSuccessAsync(async (r, ct) =>
+            {
+                await Task.Yield();
+                observed = ct;
+                return r;
+            }, cts.Token);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(next.IsSuccess, Is.True);
+                Assert.That(observed, Is.EqualTo(cts.Token));
+            });
+        }
+
+        [Test]
+        public async Task OnSuccessAsync_WithCancellationToken_SkipsOnFailure()
+        {
+            var result = Result<int>.Fail("fail");
+            var called = false;
+
+            var next = await result.OnSuccessAsync(async (r, ct) =>
+            {
+                await Task.Yield();
+                called = true;
+                return r;
+            });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(called, Is.False);
+                Assert.That(next.IsFailure, Is.True);
+            });
+        }
+
+        [Test]
+        public async Task OnFailure_TaskResult_ExecutesOnFailure()
+        {
+            var task = Task.FromResult(Result<int>.Fail(new Error("E", "m")));
+            var called = false;
+
+            var next = await task.OnFailure(r =>
+            {
+                called = true;
+                return Result<int>.Success(99);
+            });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(called, Is.True);
+                Assert.That(next.IsSuccess, Is.True);
+                Assert.That(next.Value, Is.EqualTo(99));
+            });
+        }
+
+        [Test]
+        public async Task OnFailure_TaskResult_SkipsOnSuccess()
+        {
+            var task = Task.FromResult(Result<int>.Success(42));
+            var called = false;
+
+            var next = await task.OnFailure(r =>
+            {
+                called = true;
+                return r;
+            });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(called, Is.False);
+                Assert.That(next.IsSuccess, Is.True);
+                Assert.That(next.Value, Is.EqualTo(42));
+            });
+        }
+
+        [Test]
+        public async Task OnFailureAsync_WithCancellationToken_ExecutesOnFailure()
+        {
+            var result = Result<int>.Fail(new Error("E", "m"));
+            using var cts = new CancellationTokenSource();
+            var observed = CancellationToken.None;
+
+            var next = await result.OnFailureAsync(async (r, ct) =>
+            {
+                await Task.Yield();
+                observed = ct;
+                return Result<int>.Success(99);
+            }, cts.Token);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(next.IsSuccess, Is.True);
+                Assert.That(next.Value, Is.EqualTo(99));
+                Assert.That(observed, Is.EqualTo(cts.Token));
+            });
+        }
+
+        [Test]
+        public async Task OnFailureAsync_WithCancellationToken_SkipsOnSuccess()
+        {
+            var result = Result<int>.Success(42);
+            var called = false;
+
+            var next = await result.OnFailureAsync(async (r, ct) =>
+            {
+                await Task.Yield();
+                called = true;
+                return r;
+            });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(called, Is.False);
+                Assert.That(next.IsSuccess, Is.True);
+            });
+        }
+
+        [Test]
+        public async Task OnFinally_TaskResult_ExecutesAlways()
+        {
+            var task = Task.FromResult(Result<int>.Fail(new Error("E", "m")));
+            var called = false;
+
+            var next = await task.OnFinally(r =>
+            {
+                called = true;
+                return r;
+            });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(called, Is.True);
+                Assert.That(next.IsFailure, Is.True);
+            });
+        }
+
+        [Test]
+        public async Task OnFinallyAsync_TaskResult_ExecutesAlways()
+        {
+            var task = Task.FromResult(Result<int>.Success(42));
+            var called = false;
+
+            var next = await task.OnFinallyAsync(async r =>
+            {
+                await Task.Yield();
+                called = true;
+                return r;
+            });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(called, Is.True);
+                Assert.That(next.IsSuccess, Is.True);
+                Assert.That(next.Value, Is.EqualTo(42));
+            });
+        }
+
+        [Test]
+        public async Task OnFinallyAsync_WithCancellationToken_PassesToken()
+        {
+            var result = Result<int>.Success(42);
+            using var cts = new CancellationTokenSource();
+            var observed = CancellationToken.None;
+
+            var next = await result.OnFinallyAsync(async (r, ct) =>
+            {
+                await Task.Yield();
+                observed = ct;
+                return r;
+            }, cts.Token);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(next.IsSuccess, Is.True);
+                Assert.That(observed, Is.EqualTo(cts.Token));
+            });
+        }
+
+        [Test]
+        public async Task OnFinallyAsync_TaskResult_WithCancellationToken_PassesToken()
+        {
+            var task = Task.FromResult(Result<int>.Fail(new Error("E", "m")));
+            using var cts = new CancellationTokenSource();
+            var observed = CancellationToken.None;
+
+            var next = await task.OnFinallyAsync(async (r, ct) =>
+            {
+                await Task.Yield();
+                observed = ct;
+                return r;
+            }, cts.Token);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(next.IsFailure, Is.True);
+                Assert.That(observed, Is.EqualTo(cts.Token));
+            });
+        }
 
     }
 }

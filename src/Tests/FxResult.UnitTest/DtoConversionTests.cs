@@ -1,6 +1,7 @@
 using NUnit.Framework;
 using FxResult.Api.Responses;
 using FxResult.Core;
+using FxResult.Core.Meta;
 using System.Collections.Generic;
 using FxResult.Api.Responses.Extensions;
 using System.Collections.Immutable;

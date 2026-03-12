@@ -1,4 +1,5 @@
 ﻿using FxResult.Core;
+using FxResult.Core.Meta;
 using FxResult.ResultExtensions;
 
 namespace FxResult.UnitTest.ThenTests;
@@ -350,5 +351,118 @@ public class ThenTests
         Assert.That(result.Value, Is.EqualTo(42));
     }
 
+    [Test]
+    public void Then_ValueTransform_ShouldPropagateFailureAndMeta()
+    {
+        var meta = new MetaInfo(correlationId: "corr");
+        var error = new Error("E", "m");
+        var result = Result<int>.Fail(error, meta);
 
+        var next = result.Then(x => x * 3);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(next.IsFailure, Is.True);
+            Assert.That(next.Error, Is.EqualTo(error));
+            Assert.That(next.Meta, Is.EqualTo(meta));
+        });
+    }
+
+    [Test]
+    public void Then_Unit_Action_ShouldExecute_WhenSuccess()
+    {
+        var meta = new MetaInfo(correlationId: "corr");
+        var result = Result<Unit>.Success(Unit.Value, meta);
+        var called = false;
+
+        var next = result.Then(() => called = true);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(called, Is.True);
+            Assert.That(next.IsSuccess, Is.True);
+            Assert.That(next.Meta, Is.EqualTo(meta));
+        });
+    }
+
+    [Test]
+    public void Then_Unit_Action_DoesNotExecute_WhenFailure()
+    {
+        var result = Result<Unit>.Fail("fail");
+        var called = false;
+
+        var next = result.Then(() => called = true);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(called, Is.False);
+            Assert.That(next.IsFailure, Is.True);
+        });
+    }
+
+    [Test]
+    public void Then_Unit_ResultReturning_ShouldReturnTransform_WhenSuccess()
+    {
+        var result = Result<Unit>.Success(Unit.Value);
+
+        var next = result.Then(() => Result<string>.Success("ok"));
+
+        Assert.That(next.IsSuccess, Is.True);
+        Assert.That(next.Value, Is.EqualTo("ok"));
+    }
+
+    [Test]
+    public void Then_Unit_ResultReturning_PropagatesFailure()
+    {
+        var result = Result<Unit>.Fail("fail");
+
+        var next = result.Then(() => Result<string>.Success("ok"));
+
+        Assert.That(next.IsFailure, Is.True);
+        Assert.That(next.Error.Message, Is.EqualTo("fail"));
+    }
+
+    [Test]
+    public void ThenTry_Unit_Action_ReturnsSuccess_WhenNoException()
+    {
+        var result = Result<Unit>.Success(Unit.Value);
+        var called = false;
+
+        var next = result.ThenTry(() => called = true);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(called, Is.True);
+            Assert.That(next.IsSuccess, Is.True);
+        });
+    }
+
+    [Test]
+    public void ThenTry_Unit_Action_ReturnsFailure_WhenExceptionThrown()
+    {
+        var result = Result<Unit>.Success(Unit.Value);
+
+        var next = result.ThenTry(() => throw new InvalidOperationException("boom"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(next.IsFailure, Is.True);
+            Assert.That(next.Error.Message, Is.EqualTo("boom"));
+        });
+    }
+
+    [Test]
+    public void ThenTry_Unit_Action_SkipsOnFailure()
+    {
+        var result = Result<Unit>.Fail("already failed");
+        var called = false;
+
+        var next = result.ThenTry(() => called = true);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(called, Is.False);
+            Assert.That(next.IsFailure, Is.True);
+        });
+    }
 }

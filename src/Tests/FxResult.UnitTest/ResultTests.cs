@@ -1,4 +1,5 @@
 using FxResult.Core;
+using FxResult.Core.Meta;
 
 namespace FxResult.UnitTest
 {
@@ -19,14 +20,14 @@ namespace FxResult.UnitTest
             {
                 Assert.That(result.IsSuccess, Is.True);
                 Assert.That(result.Value, Is.EqualTo(value));
-                Assert.That(result.Error, Is.Null);
+                Assert.That(result.Error, Is.EqualTo(Error.Uninitialized));
             });
         }
 
         [TestCase("Test error", "FAIL", "TestSource")]
         public void Constructor_Failure_SetsProperties(string message, string code, string source)
         {
-            var error = new Error(message, code, source);
+            var error = new Error(code, message, source);
             var result = new Result<string>(error);
 
             Assert.That(result.IsSuccess, Is.False);
@@ -49,7 +50,7 @@ namespace FxResult.UnitTest
             {
                 Assert.That(result.IsSuccess, Is.False);
                 Assert.That(result.Error!.Message, Is.EqualTo(message));
-                Assert.That(result.Error!.Code, Is.EqualTo("error"));
+                Assert.That(result.Error!.Code, Is.EqualTo(ErrorCodes.UNHANDLED_ERROR));
                 Assert.Throws<InvalidOperationException>(() => _ = result.Value);
             });
         }
@@ -76,7 +77,7 @@ namespace FxResult.UnitTest
         public void TryGetValue_OnFailureResult_ReturnsFalseAndDefault()
         {
             // Arrange
-            var error = new Error("Test error");
+            var error = new Error("TEST", "Test error");
             var result = Result<string>.Fail(error);
             
             // Act
@@ -111,7 +112,7 @@ namespace FxResult.UnitTest
         public void ImplicitConversion_FromError_CreatesFailureResult()
         {
             // Arrange
-            var error = new Error("Test error");
+            var error = new Error("TEST", "Test error");
             
             // Act
             Result<int> result = error;
@@ -171,7 +172,7 @@ namespace FxResult.UnitTest
             Assert.That(result.IsFailure, Is.True);
             Assert.That(result.Error, Is.Not.Null);
             Assert.That(result.Error!.Message, Is.EqualTo("bad op"));
-            Assert.That(result.Error.Code, Is.EqualTo("InvalidOperationException"));
+            Assert.That(result.Error.Code, Is.EqualTo(ErrorCodes.UNHANDLED_ERROR));
         }
 
         [Test]
@@ -191,7 +192,7 @@ namespace FxResult.UnitTest
             Assert.That(result.IsFailure, Is.True);
             Assert.That(result.Error, Is.Not.Null);
             Assert.That(result.Error!.Message, Is.EqualTo("boom"));
-            Assert.That(result.Error.Code, Is.EqualTo("Exception"));
+            Assert.That(result.Error.Code, Is.EqualTo(ErrorCodes.UNHANDLED_ERROR));
         }
 
         [Test]
@@ -249,7 +250,7 @@ namespace FxResult.UnitTest
             {
                 Assert.That(result.IsFailure, Is.True);
                 Assert.That(result.Error!.Message, Is.EqualTo(exceptionMessage));
-                Assert.That(result.Error.Code, Is.EqualTo("InvalidOperationException"));
+                Assert.That(result.Error.Code, Is.EqualTo(ErrorCodes.UNHANDLED_ERROR));
                 Assert.Throws<InvalidOperationException>(() => _ = result.Value);
             });
         }
@@ -269,7 +270,7 @@ namespace FxResult.UnitTest
             {
                 Assert.That(result.IsFailure, Is.True);
                 Assert.That(result.Error!.Message, Does.Contain(exceptionMessage));
-                Assert.That(result.Error.Code, Is.EqualTo("ArgumentException"));
+                Assert.That(result.Error.Code, Is.EqualTo(ErrorCodes.UNHANDLED_ERROR));
             });
         }
 
@@ -292,8 +293,169 @@ namespace FxResult.UnitTest
                 Assert.That(result.IsFailure, Is.True);
                 Assert.That(result.Error!.Message, Is.EqualTo($"One or more errors occurred. ({innerExceptionMessage})"));
 
-                Assert.That(result.Error.Code, Is.EqualTo("AggregateException"));
+                Assert.That(result.Error.Code, Is.EqualTo(ErrorCodes.UNHANDLED_ERROR));
             });
+        }
+
+        [Test]
+        public void Success_ShouldProduceSuccessfulResultWithValueAndMeta()
+        {
+            var meta = new MetaInfo(correlationId: "corr");
+            var result = Result<string>.Success("value", meta);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.IsSuccess, Is.True);
+                Assert.That(result.IsFailure, Is.False);
+                Assert.That(result.Value, Is.EqualTo("value"));
+                Assert.That(result.ValueObject, Is.EqualTo("value"));
+                Assert.That(result.Meta, Is.EqualTo(meta));
+                Assert.That(result.Error, Is.EqualTo(Error.Uninitialized));
+            });
+        }
+
+        [Test]
+        public void Fail_ShouldProduceFailureAndThrowWhenAccessingValue()
+        {
+            var error = new Error("ERR", "message");
+            var result = Result<string>.Fail(error);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.IsFailure, Is.True);
+                Assert.That(result.Error, Is.EqualTo(error));
+                Assert.Throws<InvalidOperationException>(() => _ = result.Value);
+            });
+        }
+
+        [Test]
+        public void Try_ShouldCaptureExceptionWithSourceAndException()
+        {
+            var result = Result<int>.Try(
+                () => throw new InvalidOperationException("boom"),
+                source: "UnitTest");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.IsFailure, Is.True);
+                Assert.That(result.Error.Code, Is.EqualTo(ErrorCodes.UNHANDLED_ERROR));
+                Assert.That(result.Error.Source, Is.EqualTo("UnitTest"));
+                Assert.That(result.Error.Exception, Is.TypeOf<InvalidOperationException>());
+            });
+        }
+
+        [Test]
+        public async Task TryAsync_ShouldCaptureExceptionWithSourceAndException()
+        {
+            var result = await Result<int>.TryAsync(async () =>
+            {
+                await Task.Delay(1);
+                throw new InvalidOperationException("boom");
+            }, source: "AsyncTest");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.IsFailure, Is.True);
+                Assert.That(result.Error.Code, Is.EqualTo(ErrorCodes.UNHANDLED_ERROR));
+                Assert.That(result.Error.Source, Is.EqualTo("AsyncTest"));
+                Assert.That(result.Error.Exception, Is.TypeOf<InvalidOperationException>());
+            });
+        }
+
+        [Test]
+        public void Constructor_NullError_ThrowsArgumentNullException()
+        {
+            Assert.Throws<ArgumentNullException>(() => new Result<int>(null!));
+        }
+
+        [Test]
+        public void Fail_FromException_SetsCodeAndExceptionAndMessage()
+        {
+            var ex = new InvalidOperationException("bad op");
+
+            var result = Result<int>.Fail(ex, source: "Svc");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.IsFailure, Is.True);
+                Assert.That(result.Error.Code, Is.EqualTo(ErrorCodes.UNHANDLED_ERROR));
+                Assert.That(result.Error.Message, Is.EqualTo("bad op"));
+                Assert.That(result.Error.Source, Is.EqualTo("Svc"));
+                Assert.That(result.Error.Exception, Is.SameAs(ex));
+            });
+        }
+
+        [Test]
+        public async Task TryAsync_WithCancellationToken_ReturnsSuccess()
+        {
+            using var cts = new CancellationTokenSource();
+
+            var result = await Result<int>.TryAsync(async ct =>
+            {
+                await Task.Yield();
+                ct.ThrowIfCancellationRequested();
+                return 42;
+            }, cts.Token);
+
+            Assert.That(result.IsSuccess, Is.True);
+            Assert.That(result.Value, Is.EqualTo(42));
+        }
+
+        [Test]
+        public async Task TryAsync_WithCancellationToken_CapturesException()
+        {
+            using var cts = new CancellationTokenSource();
+            cts.Cancel();
+
+            var result = await Result<int>.TryAsync(async ct =>
+            {
+                await Task.Yield();
+                ct.ThrowIfCancellationRequested();
+                return 42;
+            }, cts.Token);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.IsFailure, Is.True);
+                Assert.That(result.Error.Exception, Is.TypeOf<OperationCanceledException>());
+            });
+        }
+
+        [Test]
+        public void Try_WithOnExceptionCallback_UsesCustomError()
+        {
+            var result = Result<int>.Try(
+                () => throw new InvalidOperationException("boom"),
+                onException: ex => new Error("CUSTOM", "custom: " + ex.Message));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.IsFailure, Is.True);
+                Assert.That(result.Error.Code, Is.EqualTo("CUSTOM"));
+                Assert.That(result.Error.Message, Is.EqualTo("custom: boom"));
+            });
+        }
+
+        [Test]
+        public async Task TryAsync_WithOnExceptionCallback_UsesCustomError()
+        {
+            var result = await Result<int>.TryAsync(
+                async () => { await Task.Yield(); throw new InvalidOperationException("boom"); },
+                onException: ex => new Error("CUSTOM", "custom: " + ex.Message));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.IsFailure, Is.True);
+                Assert.That(result.Error.Code, Is.EqualTo("CUSTOM"));
+                Assert.That(result.Error.Message, Is.EqualTo("custom: boom"));
+            });
+        }
+
+        [Test]
+        public void ValueObject_ReturnsNull_OnFailure()
+        {
+            var result = Result<int>.Fail("err");
+            Assert.That(result.ValueObject, Is.Null);
         }
     }
 }

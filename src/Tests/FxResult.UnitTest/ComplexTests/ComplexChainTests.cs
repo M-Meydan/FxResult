@@ -1,5 +1,6 @@
 ﻿using FxResult.Core;
 using FxResult.ResultExtensions;
+using FxResult.ResultExtensions.SideEffects;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -308,7 +309,7 @@ namespace FxResult.UnitTest.ComplexTests
         public void EdgeCase_NestedResults_PropagatesInnerFailure()
         {
             // Arrange
-            var error = new Error("Inner error", "INNER_ERROR");
+            var error = new Error("INNER_ERROR", "Inner error");
 
             // Act - Create a Result<Result<int>> with inner failure and then unwrap it
             var nestedResult = Result<Result<int>>.Success(Result<int>.Fail(error));
@@ -329,7 +330,7 @@ namespace FxResult.UnitTest.ComplexTests
         public void EdgeCase_NestedResults_PropagatesOuterFailure()
         {
             // Arrange
-            var error = new Error("Outer error", "OUTER_ERROR");
+            var error = new Error("OUTER_ERROR", "Outer error");
 
             // Act - Create a failed Result<Result<int>> and then try to unwrap it
             var nestedResult = Result<Result<int>>.Fail(error);
@@ -431,7 +432,7 @@ namespace FxResult.UnitTest.ComplexTests
                 .Try(() => throw new Exception("fail"))
                 .OnFailureAsync(_ =>
                 {
-                    var error = new Error("manually replaced", "REPLACED");
+                    var error = new Error("REPLACED", "manually replaced");
                     return Task.FromResult(Result<string>.Fail(error));
                 })
                 .Then(s => s.ToUpper())  // skipped

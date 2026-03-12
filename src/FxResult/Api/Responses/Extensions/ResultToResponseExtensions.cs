@@ -1,5 +1,6 @@
 ﻿using FxResult.Api.Responses;
 using FxResult.Core;
+using FxResult.Core.Meta;
 
 namespace FxResult.Api.Responses.Extensions;
 
@@ -10,13 +11,9 @@ public static class ResultToResponseExtensions
 {
     /// <summary>
     /// Converts a Result to a DTO, optionally with metadata.
-    /// <example>
-    /// var response = result.ToResponseDto();
-    /// // If result success, response.Data set, else response.Error set
-    /// </example>
     /// </summary>
     public static ResultResponse<T> ToResponseDto<T>(this Result<T> result, MetaInfo? meta = null) =>
         result.TryGetValue(out var value)
             ? ResultResponse<T>.FromSuccess(value!, meta)
-            : ResultResponse<T>.FromError(result.Error!); // Uses null-forgiving operator
+            : ResultResponse<T>.FromError(result.Error);
 }

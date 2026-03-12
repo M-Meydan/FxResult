@@ -33,5 +33,5 @@ public class ResultResponse<T>
     /// var errorResponse = ResultResponse&lt;string&gt;.FromError(error);
     /// </example>
     public static ResultResponse<T> FromError(Error error) =>
-        new() { Error = error.ToPublicDto() };
+        new() { Error = error?.ToPublicDto() };
 }

@@ -1,4 +1,5 @@
 using FxResult.ResultExtensions;
+using FxResult.ResultExtensions.Helpers;
 
 namespace FxResult.UnitTest
 {
@@ -21,13 +22,13 @@ namespace FxResult.UnitTest
                 Assert.That(result.Value.Count, Is.EqualTo(10));
                 Assert.That(result.Value.First(), Is.EqualTo(11));
 
-                var meta = result.Meta!;
-                Assert.That(meta.Value.Pagination.Page, Is.EqualTo(2));
-                Assert.That(meta.Value.Pagination.PageSize, Is.EqualTo(10));
-                Assert.That(meta.Value.Pagination.TotalCount, Is.EqualTo(25));
-                Assert.That(meta.Value.Pagination.TotalPages, Is.EqualTo(3));
-                Assert.That(meta.Value.Pagination.HasNextPage, Is.True);
-                Assert.That(meta.Value.Pagination.HasPreviousPage, Is.True);
+                var meta = result.Meta;
+                Assert.That(meta.Pagination.Page, Is.EqualTo(2));
+                Assert.That(meta.Pagination.PageSize, Is.EqualTo(10));
+                Assert.That(meta.Pagination.TotalCount, Is.EqualTo(25));
+                Assert.That(meta.Pagination.TotalPages, Is.EqualTo(3));
+                Assert.That(meta.Pagination.HasNextPage, Is.True);
+                Assert.That(meta.Pagination.HasPreviousPage, Is.True);
             });
         }
 
@@ -47,13 +48,13 @@ namespace FxResult.UnitTest
                 Assert.That(result.Value.Count, Is.EqualTo(5));
                 Assert.That(result.Value.First(), Is.EqualTo(1));
 
-                var meta = result.Meta!;
-                Assert.That(meta.Value.Pagination.Page, Is.EqualTo(1));
-                Assert.That(meta.Value.Pagination.PageSize, Is.EqualTo(5));
-                Assert.That(meta.Value.Pagination.TotalCount, Is.EqualTo(15));
-                Assert.That(meta.Value.Pagination.TotalPages, Is.EqualTo(3));
-                Assert.That(meta.Value.Pagination.HasNextPage, Is.True);
-                Assert.That(meta.Value.Pagination.HasPreviousPage, Is.False);
+                var meta = result.Meta;
+                Assert.That(meta.Pagination.Page, Is.EqualTo(1));
+                Assert.That(meta.Pagination.PageSize, Is.EqualTo(5));
+                Assert.That(meta.Pagination.TotalCount, Is.EqualTo(15));
+                Assert.That(meta.Pagination.TotalPages, Is.EqualTo(3));
+                Assert.That(meta.Pagination.HasNextPage, Is.True);
+                Assert.That(meta.Pagination.HasPreviousPage, Is.False);
             });
         }
 
@@ -69,9 +70,9 @@ namespace FxResult.UnitTest
                 .WithMetaData("requestedBy", "tester");
 
             // Assert
-            var meta = result.Meta!;
-            Assert.That(meta.Value.Additional["apiVersion"], Is.EqualTo("v1"));
-            Assert.That(meta.Value.Additional["requestedBy"], Is.EqualTo("tester"));
+            var meta = result.Meta;
+            Assert.That(meta.Additional["apiVersion"], Is.EqualTo("v1"));
+            Assert.That(meta.Additional["requestedBy"], Is.EqualTo("tester"));
         }
 
         [TestCaseSource(nameof(NegativePagingParametersTestCases))]
@@ -84,8 +85,8 @@ namespace FxResult.UnitTest
             Assert.Multiple(() =>
             {
                 Assert.That(result.Value.Count, Is.EqualTo(expectedCount));
-                Assert.That(result.Meta!.Value.Pagination.Page, Is.EqualTo(expectedPage));
-                Assert.That(result.Meta!.Value.Pagination.PageSize, Is.EqualTo(expectedPageSize));
+                Assert.That(result.Meta.Pagination.Page, Is.EqualTo(expectedPage));
+                Assert.That(result.Meta.Pagination.PageSize, Is.EqualTo(expectedPageSize));
             });
         }
 

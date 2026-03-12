@@ -1,122 +1,105 @@
 ﻿using FxResult.Core;
-using System;
 using System.Runtime.CompilerServices;
-using System.Threading.Tasks;
 
 namespace FxResult.ResultExtensions;
 
 /// <summary>
-/// Asynchronous exception-safe transformations for Result{T} and Task<Result{T}>.
-/// <para>
-/// Examples:
-/// <code>
-/// var r2 = await r1.ThenTryAsync(async x => await DangerousAsync(x));
-/// var r3 = await r1.ThenTryAsync(async x => await TryAsync(x));
-/// </code>
-/// </para>
+/// Asynchronous exception-safe transformations for <see cref="Result{T}"/> and Task&lt;Result{T}&gt;.
 /// </summary>
 public static partial class ThenExtensions
 {
     /// <summary>
-    /// Try/catch safe transformation on Task&lt;Result&lt;T&gt;&gt; with sync transform.
-    /// <example>
-    /// var r2 = await r1.ThenTry(x => DangerousOp(x));
-    /// </example>
+    /// Async chaining — sync exception-safe transform on Task&lt;Result&lt;T&gt;&gt;.
     /// </summary>
-    public static async Task<Result<TOut>> ThenTryAsync<TIn, TOut>(this Task<Result<TIn>> resultTask,Func<TIn, TOut> transform, string? source = null, [CallerMemberName] string? caller = null)
-    {
-        var result = await resultTask;
-        return result.ThenTry(transform, source, caller);
-    }
+    public static async Task<Result<TOut>> ThenTry<TIn, TOut>(
+        this Task<Result<TIn>> resultTask,
+        Func<TIn, TOut> transform,
+        string? source = null,
+        [CallerMemberName] string? caller = null)
+        => (await resultTask.ConfigureAwait(false)).ThenTry(transform, source, caller);
 
     /// <summary>
-    /// Try/catch safe Result-returning transform on Task&lt;Result&lt;T&gt;&gt;.
+    /// Async chaining — sync exception-safe Result-returning transform on Task&lt;Result&lt;T&gt;&gt;.
     /// </summary>
-    public static async Task<Result<TOut>> ThenTryAsync<TIn, TOut>(this Task<Result<TIn>> resultTask,Func<TIn, Result<TOut>> transform, string? source = null, [CallerMemberName] string? caller = null)
-    {
-        var result = await resultTask;
-        return result.ThenTry(transform,source, caller);
-    }
+    public static async Task<Result<TOut>> ThenTry<TIn, TOut>(
+        this Task<Result<TIn>> resultTask,
+        Func<TIn, Result<TOut>> transform,
+        string? source = null,
+        [CallerMemberName] string? caller = null)
+        => (await resultTask.ConfigureAwait(false)).ThenTry(transform, source, caller);
 
     /// <summary>
-    /// Async try/catch safe transformation.
-    /// <example>
-    /// var r2 = await r1.ThenTryAsync(async x => await DangerousAsync(x));
-    /// </example>
+    /// Async chaining — async exception-safe transform on Result&lt;T&gt;.
     /// </summary>
-    public static async Task<Result<TOut>> ThenTryAsync<TIn, TOut>(this Result<TIn> result,Func<TIn, Task<TOut>> transform, string? source = null, [CallerMemberName] string? caller = null)
+    public static async Task<Result<TOut>> ThenTryAsync<TIn, TOut>(
+        this Result<TIn> result,
+        Func<TIn, Task<TOut>> transform,
+        string? source = null,
+        [CallerMemberName] string? caller = null)
     {
         if (!result.TryGetValue(out var value))
-            return result.Error!;
-        try { return await transform(value!); }
-        catch (Exception ex)
-        {
-             var effectiveSource = source ?? (transform.Method?.DeclaringType?.FullName + "." + transform.Method?.Name);
-            return new Error(ex.Message, ex.GetType().Name, effectiveSource, caller, ex);
-        }
-    }
-
-    /// <summary>
-    /// Async try/catch safe Result-returning transformation.
-    /// <example>
-    /// var r2 = await r1.ThenTryAsync(async x => await TryAsync(x));
-    /// </example>
-    /// </summary>
-    public static async Task<Result<TOut>> ThenTryAsync<TIn, TOut>(this Result<TIn> result,Func<TIn, Task<Result<TOut>>> transform,string? source = null, [CallerMemberName] string? caller = null)
-    {
-        if (!result.TryGetValue(out var value))
-            return result.Error!;
-
-        try { return await transform(value!); }
-        catch (Exception ex)
-        {
-            var effectiveSource = source ?? (transform.Method?.DeclaringType?.FullName + "." + transform.Method?.Name);
-            return new Error(ex.Message, ex.GetType().Name, effectiveSource, caller, ex);
-        }
-    }
-
-    /// <summary>
-    /// Async try/catch safe transformation on Task&lt;Result&lt;T&gt;&gt; with Task&lt;TOut&gt; transform.
-    /// </summary>
-    /// <example>
-    /// var r2 = await resultTask.ThenTryAsync(async x => await DangerousAsync(x));
-    /// </example>
-    public static async Task<Result<TOut>> ThenTryAsync<TIn, TOut>(this Task<Result<TIn>> resultTask,Func<TIn, Task<TOut>> transform,string? source = null, [CallerMemberName] string? caller = null)
-    {
-        var result = await resultTask;
-        return await result.ThenTryAsync(transform, source, caller);
-    }
-
-    /// <summary>
-    /// Async try/catch safe Result-returning transformation on Task&lt;Result&lt;T&gt;&gt;.
-    /// </summary>
-    /// <example>
-    /// var r2 = await resultTask.ThenTryAsync(async x => await TryAsync(x));
-    /// </example>
-    public static async Task<Result<TOut>> ThenTryAsync<TIn, TOut>(this Task<Result<TIn>> resultTask,Func<TIn, Task<Result<TOut>>> transform,string? source = null, [CallerMemberName] string? caller = null)
-    {
-        var result = await resultTask;
-        return await result.ThenTryAsync(transform, source, caller);
-    }
-
-    /// <summary>
-    /// Asynchronous chaining for Result<Unit>. 
-    /// </summary>
-    /// <example>
-    /// var result = await someResult.ThenTry(async () => await SomeAsyncOperation()); 
-    /// </example>
-    public static async Task<Result<Unit>> ThenTry(this Result<Unit> result, Func<Task> action, string? source = null, [CallerMemberName] string? caller = null)
-    {
-        if (result.IsFailure) return result;
+            return Result<TOut>.Fail(result.Error.WithContext(source, caller), result.Meta);
 
         try
         {
-            await action();
-            return Result<Unit>.Success(Unit.Value, result.Meta);
+            var next = await transform(value!).ConfigureAwait(false);
+            return Result<TOut>.Success(next, result.Meta);
         }
         catch (Exception ex)
         {
-            return Result<Unit>.Fail(ex, ex.GetType().Name, source, caller);
+            var effectiveSource =
+                source ?? $"{transform.Method?.DeclaringType?.FullName}.{transform.Method?.Name}";
+
+            return Result<TOut>.Fail(
+                new Error(ex.GetType().Name, ex.Message, effectiveSource, caller, ex),
+                result.Meta);
         }
     }
+
+    /// <summary>
+    /// Async chaining — async exception-safe Result-returning transform on Result&lt;T&gt;.
+    /// </summary>
+    public static async Task<Result<TOut>> ThenTryAsync<TIn, TOut>(
+        this Result<TIn> result,
+        Func<TIn, Task<Result<TOut>>> transform,
+        string? source = null,
+        [CallerMemberName] string? caller = null)
+    {
+        if (!result.TryGetValue(out var value))
+            return Result<TOut>.Fail(result.Error.WithContext(source, caller), result.Meta);
+
+        try
+        {
+            return await transform(value!).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            var effectiveSource =
+                source ?? $"{transform.Method?.DeclaringType?.FullName}.{transform.Method?.Name}";
+
+            return Result<TOut>.Fail(
+                new Error(ex.GetType().Name, ex.Message, effectiveSource, caller, ex),
+                result.Meta);
+        }
+    }
+
+    /// <summary>
+    /// Async chaining — async exception-safe transform on Task&lt;Result&lt;T&gt;&gt;.
+    /// </summary>
+    public static async Task<Result<TOut>> ThenTryAsync<TIn, TOut>(
+        this Task<Result<TIn>> resultTask,
+        Func<TIn, Task<TOut>> transform,
+        string? source = null,
+        [CallerMemberName] string? caller = null)
+        => await (await resultTask.ConfigureAwait(false)).ThenTryAsync(transform, source, caller).ConfigureAwait(false);
+
+    /// <summary>
+    /// Async chaining — async exception-safe Result-returning transform on Task&lt;Result&lt;T&gt;&gt;.
+    /// </summary>
+    public static async Task<Result<TOut>> ThenTryAsync<TIn, TOut>(
+        this Task<Result<TIn>> resultTask,
+        Func<TIn, Task<Result<TOut>>> transform,
+        string? source = null,
+        [CallerMemberName] string? caller = null)
+        => await (await resultTask.ConfigureAwait(false)).ThenTryAsync(transform, source, caller).ConfigureAwait(false);
 }

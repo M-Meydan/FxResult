@@ -1,48 +1,90 @@
 # FxResult
 
-FxResult is a fluent, exception-safe result type for .NET that simplifies success/failure handling, enables null-safe logic, and supports clean sync/async pipelines.
+A fluent, exception-safe `Result<T>` for .NET — clean success/failure pipelines without throwing exceptions in business logic.
 
-- ✅ `Result<T>` and `Result<Unit>` for consistent API responses
-- 🚫 Avoids exceptions in business logic — use `.Try()`, `.ThenTry()`, `.Ensure()`, `.FailIf()`
-- ✅ `.FailIfNull()` and `.FailIfNullAsync()` for safe null propagation from T? and Task<T?>
-- ✅ Nullable-safe handling for `Result<T?>`, `Task<T?>`, and `Task<Result<T?>>`
-- 🧪 Includes test-friendly Tap(out var), metadata flow, and Try-safe result creation
-- 🔄 Full sync/async support with `.OnSuccess()`, `.OnFailure()`, `.OnFinally()`
-- 📦 Metadata, pagination, and error modelling included
-- 🌐 GitHub: [FxResults Repository](https://github.com/M-Meydan/FxResult)
-
-Install:
-```csharp
+```
 dotnet add package FxResult
 ```
+
+## ✨ Features
+
+- **`Result<T>` / `Result<Unit>`** — struct-based success/failure wrapper with `IResult` for non-generic handling
+- **Exception-safe** — `.Try()`, `.TryAsync()`, `.ThenTry()` capture exceptions as `Error` with caller location
+- **Validation** — `.Ensure()`, `.FailIf()`, `.FailIfNull()` + async variants with `CancellationToken`
+- **Chaining** — `.Then()`, `.ThenAsync()` with `out var` capture and `Result<Unit>` overloads
+- **Side-effects** — `.Tap()`, `.TapFailure()`, `.OnSuccess()`, `.OnFailure()`, `.OnFinally()` (sync/async)
+- **Metadata** — `MetaInfo` with `CorrelationId`, `Additional`, `Trace`, pagination, `BuildLogScope()`
+- **API responses** — `.ToResponseDto()` → `ResultResponse<T>` with `PublicErrorResponse`
+- **Error model** — `record Error` with `Code`, `Message`, `Source`, `Caller`, `Exception`, `Location`, implicit conversions
+
+🌐 [GitHub Repository](https://github.com/M-Meydan/FxResult)
+
 ---
 
-### 🧩 How to Use It
-```csharp
-using FxResult;
-using R = FxResult.Result; // Alias for cleaner chaining
+## 🔁 How the Pipeline Works
 
-var result = await R<string>
-    .Try(() => CaptureUserInput("Hello"))                              // R1: get input or capture thrown exception
-    .Ensure(x => !string.IsNullOrWhiteSpace(x), "EMPTY", "Input is empty") // R2: validate
-    .FailIf(x => x.Length < 3, "SHORT", "Too short")                   // R3: fail early on condition
-    .ThenAsync(x => TryFindInCacheAsync(x))                            // R4: nullable Task<string?>
-    .FailIfNullAsync("NOT_FOUND", "Value not found")                   // R5: null-safe async unwrap
-    .Tap(out var original)                                             // R6: capture for rollback/log
-    .Then(SaveToDatabase)                                              // R7: simulate saving to DB
-    .OnFailure(res =>
-    {
-        LogError(res.Error);
-        RollbackTransaction(original.Value);
-        return R<string>.Success("fallback");                          // R8: fallback value
-    })
-    .OnSuccess(res => CommitTransaction(original.Value))               // R9: commit transaction
-    .OnFinally(_ => Console.WriteLine($"Flow complete for: {original.Value}")); // R10: always log
+Every step returns a `Result<T>`. On success the value flows forward. On failure the chain **short-circuits** — remaining steps are skipped and the error propagates unchanged until a hook handles it.
+
 ```
- ---
- 
-### 🔁 Flow Overview
-Each step returns a Result<T> (R1 → R2 → ...). If a step succeeds, the chain continues and evaluates the next operation. If a step fails, execution short-circuits and the failure is passed through to the end of the chain — skipping intermediate steps, but still triggering any registered OnFailure and OnFinally hooks.
+ ✅ Success path ─────────────────────────────────────────────────────────┐
+                                                                          │
+  Try/Then ──▶ Ensure/FailIf ──▶ ThenTry/ThenAsync ──▶ Tap ──▶ Then     │
+     │              │                   │                │        │       │
+     │ ok           │ ok                │ ❌ FAIL        │skip    │skip   │
+     └──────────────┘                   │                │        │       │
+                                        ▼                ▼        ▼       │
+                                   Error propagates (all steps skipped)   │
+                                        │                                 │
+                                        ▼                                 ▼
+                                 ┌─────────────┐                ┌──────────────┐
+                                 │ .OnFailure() │                │ .OnSuccess() │
+                                 │  recover/log │                │  commit/log  │
+                                 └──────┬───────┘                └──────┬───────┘
+                                        │                               │
+                                        └───────────┬───────────────────┘
+                                                    ▼
+                                             ┌─────────────┐
+                                             │ .OnFinally() │ ◀── always runs
+                                             └─────────────┘
+```
+
+---
+
+## 🧩 Usage Example
+```csharp
+var result = await Result<string>
+    .Try(() => GetUserInput())                                        // capture or wrap exception
+    .Ensure(x => !string.IsNullOrWhiteSpace(x), "EMPTY", "Required") // validate: must pass
+    .FailIf(x => x.Length < 3, "SHORT", "Too short")                 // validate: must not match
+    .ThenAsync(x => FindInCacheAsync(x))                              // async transform
+    .FailIfNullAsync("NOT_FOUND", "Not found")                       // null-safe unwrap
+    .Tap(out var captured)                                            // capture intermediate value
+    .Then(Save)                                                       // transform
+    .OnFailure(res =>                                                 // recover or log
+    {
+        Log(res.Error);
+        return Result<string>.Success("fallback");
+    })
+    .OnSuccess(res => { Commit(res.Value); return res; })              // success hook
+    .OnFinally(res => { Console.WriteLine("Done"); return res; });     // always runs
+```
+
+---
+
+## 📖 Quick Reference
+
+| Category | Methods |
+|---|---|
+| **Create** | `Result<T>.Success()`, `.Fail()`, `.Try()`, `.TryAsync()`, implicit from `T` / `Error` |
+| **Chain** | `.Then()`, `.ThenAsync()`, `.ThenTry()`, `.ThenTryAsync()` — with `out var` capture |
+| **Validate** | `.Ensure()`, `.EnsureAsync()`, `.FailIf()`, `.FailIfAsync()`, `.FailIfNull()`, `.FailIfNullAsync()` |
+| **Side-effects** | `.Tap()`, `.TapAsync()`, `.TapFailure()`, `.TapFailureAsync()`, `.Tap(out var)` |
+| **Hooks** | `.OnSuccess()`, `.OnFailure()`, `.OnFinally()` + async + `CancellationToken` variants |
+| **Metadata** | `.WithMeta()`, `.WithMetaData()`, `.WithTrace()`, `.BuildLogScope()` |
+| **Pagination** | `.ToPagedResult(page, pageSize)` on `IEnumerable<T>` / `IQueryable<T>` |
+| **API** | `.ToResponseDto()` → `ResultResponse<T>` |
 
 For source, docs, and advanced usage, visit: 👉 https://github.com/M-Meydan/FxResult
+
+
 

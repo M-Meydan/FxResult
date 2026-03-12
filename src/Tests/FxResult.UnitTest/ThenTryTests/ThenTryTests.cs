@@ -1,6 +1,7 @@
 using NUnit.Framework;
 using FxResult.Core;
 using FxResult.ResultExtensions;
+using FxResult.ResultExtensions.SideEffects;
 using System;
 using System.Threading.Tasks;
 
@@ -118,11 +119,11 @@ namespace FxResult.UnitTest.ThenTryTests
                                     {
                                         var result = errResult.Error!.Exception switch
                                         {
-                                            ArgumentNullException => new Error("Missing value", "ARG_NULL", "Test"),
-                                            InvalidOperationException => new Error("Invalid operation", "INVALID_OP", "Test"),
-                                            DivideByZeroException => new Error("Math error", "DIV_BY_ZERO", "Test"),
-                                            null => new Error("No exception captured", "NO_EXCEPTION", "Test"),
-                                            _ => new Error("Unknown error", "UNKNOWN", "Test", Exception: errResult.Error.Exception)
+                                            ArgumentNullException => new Error("ARG_NULL", "Missing value", "Test"),
+                                            InvalidOperationException => new Error("INVALID_OP", "Invalid operation", "Test"),
+                                            DivideByZeroException => new Error("DIV_BY_ZERO", "Math error", "Test"),
+                                            null => new Error("NO_EXCEPTION", "No exception captured", "Test"),
+                                            _ => new Error("UNKNOWN", "Unknown error", "Test", Exception: errResult.Error.Exception)
                                         };
 
                                         return result;

@@ -1,5 +1,6 @@
 ﻿using FxResult.Core;
 using FxResult.ResultExtensions;
+using FxResult.ResultExtensions.SideEffects;
 
 
 namespace FxResult.UnitTest.TapTests;
@@ -162,5 +163,85 @@ public class TapAsyncAndChainTests
 
         Assert.That(final.IsSuccess, Is.False);
         Assert.That(log, Is.Empty);
+    }
+
+    [Test]
+    public async Task TapFailureAsync_ShouldReturnSameResult_WhenFailure()
+    {
+        var error = new Error("E", "m");
+        var result = Result<int>.Fail(error);
+        var called = false;
+
+        var next = await result.TapFailureAsync(async (e, meta) =>
+        {
+            await Task.Yield();
+            called = true;
+        });
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(called, Is.True);
+            Assert.That(next.IsFailure, Is.True);
+            Assert.That(next.Error, Is.EqualTo(error));
+        });
+    }
+
+    [Test]
+    public async Task TapFailureAsync_SkipsAction_WhenSuccess()
+    {
+        var result = Result<int>.Success(42);
+        var called = false;
+
+        var next = await result.TapFailureAsync(async (e, meta) =>
+        {
+            await Task.Yield();
+            called = true;
+        });
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(called, Is.False);
+            Assert.That(next.IsSuccess, Is.True);
+        });
+    }
+
+    [Test]
+    public async Task TapFailureAsync_TaskResult_InvokesAction_WhenFailure()
+    {
+        var error = new Error("E", "m");
+        var task = Task.FromResult(Result<int>.Fail(error));
+        var called = false;
+
+        var next = await task.TapFailureAsync(async (e, meta) =>
+        {
+            await Task.Yield();
+            called = true;
+        });
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(called, Is.True);
+            Assert.That(next.IsFailure, Is.True);
+            Assert.That(next.Error, Is.EqualTo(error));
+        });
+    }
+
+    [Test]
+    public async Task TapFailureAsync_TaskResult_SkipsAction_WhenSuccess()
+    {
+        var task = Task.FromResult(Result<int>.Success(42));
+        var called = false;
+
+        var next = await task.TapFailureAsync(async (e, meta) =>
+        {
+            await Task.Yield();
+            called = true;
+        });
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(called, Is.False);
+            Assert.That(next.IsSuccess, Is.True);
+        });
     }
 }

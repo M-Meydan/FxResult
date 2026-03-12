@@ -1,5 +1,6 @@
 ﻿using FxResult.Core;
 using FxResult.ResultExtensions;
+using FxResult.ResultExtensions.SideEffects;
 
 using NUnit.Framework;
 using System;
@@ -321,5 +322,97 @@ public class TapTests
         Assert.That(captured.Value, Is.EqualTo(1002));
         Assert.That(log, Is.EqualTo(new List<string> { "Intermediate: 1002" }));
         Assert.That(result.Value, Is.EqualTo("Bob Builder"));
+    }
+
+    [Test]
+    public void Tap_ShouldReturnFailure_WhenSideEffectThrows_WithSourceAndException()
+    {
+        var result = Result<int>.Success(2);
+
+        var next = result.Tap(
+            _ => throw new InvalidOperationException("boom"),
+            source: "TapTest");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(next.IsFailure, Is.True);
+            Assert.That(next.Error.Source, Is.EqualTo("TapTest"));
+            Assert.That(next.Error.Exception, Is.TypeOf<InvalidOperationException>());
+        });
+    }
+
+    [Test]
+    public void TapFailure_ShouldInvokeAction_WhenFailure_AndReturnSameResult()
+    {
+        var result = Result<int>.Fail(new Error("E", "m"));
+        var called = false;
+
+        var next = result.TapFailure((e, _) => called = e.Code == "E");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(called, Is.True);
+            Assert.That(next, Is.EqualTo(result));
+        });
+    }
+
+    [Test]
+    public void TapFailure_SkipsAction_WhenSuccess()
+    {
+        var result = Result<int>.Success(42);
+        var called = false;
+
+        var next = result.TapFailure((e, _) => called = true);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(called, Is.False);
+            Assert.That(next, Is.EqualTo(result));
+        });
+    }
+
+    [Test]
+    public async Task TapFailure_TaskResult_InvokesAction_WhenFailure()
+    {
+        var task = Task.FromResult(Result<int>.Fail(new Error("E", "m")));
+        var called = false;
+
+        var next = await task.TapFailure((e, _) => called = true);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(called, Is.True);
+            Assert.That(next.IsFailure, Is.True);
+        });
+    }
+
+    [Test]
+    public async Task TapFailure_TaskResult_SkipsAction_WhenSuccess()
+    {
+        var task = Task.FromResult(Result<int>.Success(42));
+        var called = false;
+
+        var next = await task.TapFailure((e, _) => called = true);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(called, Is.False);
+            Assert.That(next.IsSuccess, Is.True);
+        });
+    }
+
+    [Test]
+    public void Tap_TaskResult_OutCaptured_ReturnsSameAndSetsCaptured()
+    {
+        var task = Task.FromResult(Result<int>.Success(123));
+
+        var next = task.Tap(out var captured);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(next.IsSuccess, Is.True);
+            Assert.That(next.Value, Is.EqualTo(123));
+            Assert.That(captured, Is.EqualTo(next));
+        });
     }
 }

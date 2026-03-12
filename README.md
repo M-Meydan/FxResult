@@ -1,10 +1,11 @@
 ![NuGet](https://img.shields.io/nuget/v/FxResult.svg)
+![NuGet](https://img.shields.io/nuget/v/FxResult.svg)
 ![License](https://img.shields.io/github/license/M-Meydan/FxResult)
 ![Build](https://img.shields.io/github/actions/workflow/status/M-Meydan/FxResult/build.yaml?branch=main)
 
 # FxResult
 
-**FxResult v1.1** — A result abstraction library for .NET.  
+**FxResult** A result abstraction library for .NET.  
 Provides fluent, safe result handling without exceptions for flow control.
 
 ---
@@ -44,8 +45,8 @@ Provides fluent, safe result handling without exceptions for flow control.
 
 ## Version
 
-**Latest:** `v1.1`  
-**Status:** Stable - Actively Maintained  
+**Latest:** `v1.1.2`  
+**Status:** Stable — Actively Maintained  
 
 ---
 
@@ -95,9 +96,11 @@ FxResult offers a rich set of features designed to streamline functional error h
 - **Built-in Pagination**\
 	Helpers via `.ToPagedResult()` for efficient data pagination.
 - **Rich Structured Metadata**\
-	Attach arbitrary data using `MetaInfo`.
+	Attach arbitrary data using `MetaInfo` with `Additional` (API response), `Trace` (logging), and `BuildLogScope()`.
 - **Fluent Metadata Helpers**\
-	`.WithMeta()`, `.WithMetaData()` for easy metadata manipulation.
+	`.WithMeta()`, `.WithMetaData()`, `.WithTrace()` for easy metadata manipulation.
+- **Failure Side-Effects**\
+	`.TapFailure()` / `.TapFailureAsync()` for logging or telemetry on failure without changing the result.
 
 ---
 
@@ -130,7 +133,7 @@ var fail = Result<Unit>.Fail("Something went wrong");
 var val = Result<int>.Success(42);
 
 // Creating a failed result with a structured error
-var err = Result<string>.Fail(new Error("Missing field", "INVALID"));
+var err = Result<string>.Fail(new Error("INVALID", "Missing field"));
 
 // Safe execution wrapper using Try
 var loaded = Result<string>.Try(() => LoadUserFile("users.json"));
@@ -139,8 +142,9 @@ var created = await Result<Unit>.TryAsync(() => CreateInitialUsers());
 // Implicit conversion from value to success result
 Result<int> implicitVal = 100;
 
-// Implicit conversion from string to error result
-Result<string> implicitErr = "Operation failed";
+// Implicit conversion from Error to failed result
+Error implicitErr = "OPERATION_FAILED"; // string → Error (code = message = the string)
+Result<string> failed = implicitErr;     // Error → failed Result<T>
 ```
 
 ---
@@ -151,47 +155,46 @@ Result<string> implicitErr = "Operation failed";
 | --------------------------- | ----------- | ------------------------------------------------------------------------ |
 | `IsSuccess`                 | `bool`      | `true` if the result represents a successful operation                   |
 | `IsFailure`                 | `bool`      | `true` if the result represents a failure (`!IsSuccess`)                 |
-| `Error`                     | `Error`     | The error object (`Code`, `Message`, etc.); **`null` if successful**    |
+| `Error`                     | `Error`     | The error object; returns `Error.Uninitialized` sentinel on success (never null) |
 | `Value`                     | `T`         | The returned value; **throws `InvalidOperationException` if failed**     |
-| `Meta`                      | `MetaInfo?` | Optional metadata such as pagination, trace context, etc.                |
+| `ValueObject`               | `object?`   | Boxed value for non-generic consumers (filters/middleware); `null` on failure |
+| `Meta`                      | `MetaInfo`  | Metadata (pagination, trace, additional); never null, defaults to empty  |
 | `TryGetValue(out T? value)` | `bool`      | Returns `true` if successful and sets `value`; otherwise returns `false` |
+
+`Result<T>` implements `IResult` — a non-generic interface exposing `IsSuccess`, `Error`, `Meta`, and `ValueObject` for use in API filters and middleware without knowing `T`.
 
 ---
 
 ## Metadata Support with MetaInfo
 
-`Result<T>` supports attaching optional structured metadata using `MetaInfo`. While `MetaInfo` itself is a mutable class, the `WithMeta()` and `WithMetaData()` extensions on `Result<T>` return a *new* `Result<T>` instance, preserving the immutability of the `Result` chain.
+`Result<T>` supports attaching structured metadata using `MetaInfo` — a `readonly record struct` with two dictionaries:
 
-This is useful for:
+- **`Additional`** — public metadata safe for API responses (e.g. business identifiers)
+- **`Trace`** — internal diagnostics for structured logging only (never sent to the client)
+
+Both are `ImmutableDictionary<string, object?>`. The `WithMeta()` and `WithMetaData()` extensions return a *new* `Result<T>` instance, preserving immutability.
+
+Useful for:
 
 - Adding pagination to list results
 - Tagging with trace IDs, API versions, or diagnostics
-- Returning rich, extensible responses from services or APIs
+- Building structured log scopes via `BuildLogScope()`
 
 ### Example
 
 ```csharp
-var result = Result<List<string>>.Success(items, new MetaInfo
-{
-    Pagination = new PaginationInfo
-    {
-        Page = 1,
-        PageSize = 20,
-        TotalCount = 45
-    },
-    Additional = new()
-    {
-        ["apiVersion"] = "v2",
-        ["requestedBy"] = "admin"
-    }
-});
+var meta = new MetaInfo(pagination: new PaginationInfo(page: 1, pageSize: 20, totalCount: 45))
+    .WithAdditional(("apiVersion", "v2"), ("requestedBy", "admin"))
+    .WithTrace(("correlationId", "abc-123"));
+
+var result = Result<List<string>>.Success(items, meta);
 
 result = result
     .WithMetaData("region", "EU")
     .WithMetaData("feature", "preview");
 
-// For direct manipulation of MetaInfo (use with caution if MetaInfo is shared):
-// result.Meta.WithAdditional("customKey", "customValue");
+// Build a scope dictionary for ILogger.BeginScope
+var scope = result.Meta.BuildLogScope(new Dictionary<string, object?> { ["userId"] = "U1" });
 ```
 
 ---
@@ -284,35 +287,40 @@ var response = result.ToResponseDto();
 
 ## Error Properties
 
-| Property    | Type         | Description                                    |
-|-------------|--------------|------------------------------------------------|
-| `Message`   | `string`     | Human-readable error description               |
-| `Code`      | `string`     | Unique error identifier (e.g., `USER_LOCKED`). Best practice: use consistent naming (e.g., `UPPER_SNAKE_CASE`) and ensure uniqueness. |
-| `Source`    | `string?`    | Logical component or module that caused error  |
-| `Caller`    | `string?`    | Method name where the error was created. Often automatically populated using `[CallerMemberName]` attribute. |
-| `Exception` | `Exception?` | Captured exception (optional)                  |
+| Property       | Type         | Description                                    |
+|----------------|--------------|------------------------------------------------|
+| `Code`         | `string`     | Unique error identifier (e.g., `USER_LOCKED`). Best practice: `UPPER_SNAKE_CASE`. |
+| `Message`      | `string`     | Human-readable error description               |
+| `Source`       | `string?`    | Logical component or module that caused error  |
+| `Caller`       | `string?`    | Method name where the error was created. Often auto-populated via `[CallerMemberName]`. |
+| `Exception`    | `Exception?` | Captured exception (optional, not serialized)  |
+| `HasException` | `bool`       | `true` when `Exception` is not null            |
+| `Location`     | `string?`    | Computed origin: `"File.cs:87 → Method"` (not serialized) |
+| `FilePath`     | `string?`    | Source file path (auto-captured by `Try`/`ThenTry`, not serialized) |
+| `LineNumber`   | `int?`       | Source line number (auto-captured, not serialized) |
 
 
 ### Example
 
 ```csharp
-// Direct error creation
-var error = new Error("Unauthorized", "AUTH_ERROR", "AuthService", nameof(Login));
-Error simple = "Something went wrong"; // Implicit conversion
+// Direct error creation — constructor order: (Code, Message, Source?, Caller?)
+var error = new Error("AUTH_ERROR", "Unauthorized", "AuthService", nameof(Login));
+Error simple = "Something went wrong"; // Implicit: string → Error (code = message = the string)
+Error tuple  = ("TIMEOUT", "Request timed out"); // Implicit: (code, message) → Error
 
 // Example output:
-// Error { Message = "Unauthorized", Code = "AUTH_ERROR",  Source = "AuthService", Caller = "Login" }
+// Error { Code = "AUTH_ERROR", Message = "Unauthorized", Source = "AuthService", Caller = "Login" }
 
 public Result<User> Authenticate(string email, string password)
 {
     return userRepository.FindByEmail(email)
         .FailIfNull("USER_NOT_FOUND", "User not found", source: "AuthService")
-        .FailIf(u => !u.PasswordMatches(password), "Incorrect password", "INVALID_PASSWORD", "AuthService")
+        .FailIf(u => !u.PasswordMatches(password), "INVALID_PASSWORD", "Incorrect password", "AuthService")
         .Ensure(u => u.IsActive, "USER_INACTIVE");
 }
 
 // Example failed output:
-// Error { Message = "Incorrect password", Code = "INVALID_PASSWORD",  Source = "AuthService", Caller = "Authenticate" }
+// Error { Code = "INVALID_PASSWORD", Message = "Incorrect password", Source = "AuthService", Caller = "Authenticate" }
 ```
 ---
 ### Domain-Specific Errors: Validation
@@ -324,23 +332,23 @@ public sealed class ValidationError : Error
 {
     public string FieldName { get; }
     public ValidationError(string field, string message)
-        : base(message, "VALIDATION_ERROR", source: $"Field:{field}", caller: nameof(ValidateUser))
+        : base("VALIDATION_ERROR", message, Source: $"Field:{field}")
     {
         FieldName = field;
     }
 }
 
 public Result<User> ValidateUser(User user) =>
-    Result.Success(user)
+    Result<User>.Success(user)
         .FailIf(u => string.IsNullOrWhiteSpace(u.Email), new ValidationError("Email", "Email is required"))
         .FailIf(u => u.Age < 18, new ValidationError("Age", "User must be 18 or older"))
-        .OnFailure(error =>
+        .OnFailure(r =>
         {
-            if (error is ValidationError validation)
+            if (r.Error is ValidationError validation)
             {
-                var traceId = Guid.NewGuid().ToString();
-                LogError(error, traceId); // 🔗 Linked to structured logging example
+                LogError(r.Error, Guid.NewGuid().ToString());
             }
+            return r;
         });
 
 // Example output:
@@ -364,19 +372,20 @@ void LogError(Error error, string traceId)
 Use `.WithContext()` to add or override context dynamically, especially when errors propagate across layers.
 
 ```csharp
-return Result.Fail<string>(
-    new Error("Timeout", "TIMEOUT").WithContext("FetchExternalData", "IntegrationService")
+// WithContext(source, caller) — adds or overrides origin fields
+return Result<string>.Fail(
+    new Error("TIMEOUT", "Request timed out").WithContext(source: "IntegrationService", caller: "FetchExternalData")
 );
 
-
-result.OnFailure(err =>
+result.OnFailure(r =>
 {
-    var enriched = err.WithContext(nameof(HandleError), "AlertingService");
+    var enriched = r.Error.WithContext(source: "AlertingService", caller: nameof(HandleError));
     LogError(enriched, correlationId);
+    return r;
 });
 
 // Example output:
-// Error { Code = "VALIDATION_ERROR", Message = "Email is required", Source = "Field:Email", Caller = "ValidateUser" }
+// Error { Code = "TIMEOUT", Message = "Request timed out", Source = "AlertingService", Caller = "HandleError" }
 ```
 
 ### Best usage practices:
@@ -397,22 +406,37 @@ FxResult provides a rich set of fluent extension methods for transforming, valid
 
 Each extension is grouped by its role in the pipeline, and every method supports both sync and async flows where applicable.
 
-**How Result Chains Work**
+### How Result Chains Work
 
-FxResult pipelines operate with short-circuiting semantics:
+Every step returns a `Result<T>`. On success the value flows forward. On failure the chain **short-circuits** — remaining steps are skipped and the error propagates unchanged until a hook handles it.
 
-- Each step (`Then`, `Tap`, `FailIf`, `Ensure`, etc.) is only executed if the current `Result` is successful (`IsSuccess == true`)
-
-- Once an error occurs (via `.FailIf(...)`, `.ThenTry(...)`, etc.), the chain stops executing further transformations
-
-- The error result is preserved and passed through to the end of the chain unchanged
-
-- Side-effect hooks like `.OnFailure()` and `.OnFinally()` still run, enabling logging, auditing, or cleanup
+```
+ ✅ Success path ─────────────────────────────────────────────────────────┐
+                                                                          │
+  Try/Then ──▶ Ensure/FailIf ──▶ ThenTry/ThenAsync ──▶ Tap ──▶ Then     │
+     │              │                   │                │        │       │
+     │ ok           │ ok                │ ❌ FAIL        │skip    │skip   │
+     └──────────────┘                   │                │        │       │
+                                        ▼                ▼        ▼       │
+                                   Error propagates (all steps skipped)   │
+                                        │                                 │
+                                        ▼                                 ▼
+                                 ┌─────────────┐                ┌──────────────┐
+                                 │ .OnFailure() │                │ .OnSuccess() │
+                                 │  recover/log │                │  commit/log  │
+                                 └──────┬───────┘                └──────┬───────┘
+                                        │                               │
+                                        └───────────┬───────────────────┘
+                                                    ▼
+                                             ┌─────────────┐
+                                             │ .OnFinally() │ ◀── always runs
+                                             └─────────────┘
+```
 
 This ensures:
-    - predictable execution
-    - no side effects after failure
-    - clean, readable logic without manual branching
+- Predictable execution — no hidden branches
+- No side effects after failure (`.Then`/`.Tap` are skipped)
+- Clean, readable logic without manual branching
 
 **Example**
 ```csharp
@@ -449,7 +473,7 @@ This ensures:
 Use to map or transform the successful result.
 
 ```csharp
-var res = Result.Success(10)
+var res = Result<int>.Success(10)
     .Then(x => x * 2); // returns 20
 ```
 
@@ -466,12 +490,18 @@ Use to log, trace, publish events, or inspect without changing the value. `Tap` 
 Can also be used to capture value or result via `out`, especially after async calls.
 
 ```csharp
-var result = Result.Success(10)
+var result = Result<int>.Success(10)
     .Then(x => x * 2)                         // → 20
     .Tap(x => logger.Log($"Value is {x}"))    // Logs: Value is 20
     .Tap(out var capturedValue);              // capturedValue = 20
 
 // Final result.Value = 20
+```
+
+**Failure side-effects**: Use `.TapFailure()` / `.TapFailureAsync()` for logging or telemetry on failure without changing the result.
+
+```csharp
+result.TapFailure((error, meta) => logger.LogWarning("{Code}: {Message}", error.Code, error.Message));
 ```
 
 ### FailIf: Guard Conditions
@@ -547,14 +577,14 @@ They enable logging, recovery, auditing, and tracing after core logic execution.
 
 **Example of Chained Extensions**
 ```csharp
-var result = await Result.Success("path/to/file")
+var result = await Result<string>.Success("path/to/file")
     .ThenTryAsync(File.ReadAllTextAsync)
-    .TapAsync(LogAsync)
+    .TapAsync(content => LogAsync(content))
     .EnsureAsync(IsJson, "INVALID_FORMAT", "Expected JSON")
     .Then(ParseJson)
-    .OnSuccess(r => LogInfo(r.Value))
-	.OnFailure(r => HandleError(r.Error))
-    .OnFinally(() => Log("Completed read"));
+    .OnSuccess(r => { LogInfo(r.Value); return r; })
+    .OnFailure(r => { HandleError(r.Error); return r; })
+    .OnFinally(r => { Log("Completed read"); return r; });
 ```
 ---
 ## Ideal Use Cases
