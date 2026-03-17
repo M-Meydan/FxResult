@@ -27,12 +27,12 @@ namespace FxResult.Core;
 /// type argument for <c>Result&lt;T&gt;</c> to enable fluent and uniform result handling.
 /// </remarks>
 [ExcludeFromCodeCoverage]
-public readonly struct Unit
+public readonly struct RUnit
 {
     /// <summary>
-    /// The singleton value of the <see cref="Unit"/> type.
+    /// The singleton value of the <see cref="RUnit"/> type.
     /// </summary>
-    public static readonly Unit Value = new();
+    public static readonly RUnit Value = new();
 
     /// <inheritdoc />
     public override string ToString() => "()";

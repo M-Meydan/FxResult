@@ -1,8 +1,11 @@
-﻿namespace FxResult.Api.Responses;
+﻿using System.Diagnostics.CodeAnalysis;
+
+namespace FxResult.Api.Responses;
 
 /// <summary>
 /// DTO structure for public error responses.
 /// </summary>
+[ExcludeFromCodeCoverage]
 public class PublicErrorResponse
 {
     public PublicErrorResponse(){}

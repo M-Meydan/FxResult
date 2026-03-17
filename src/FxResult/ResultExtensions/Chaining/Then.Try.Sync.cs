@@ -4,14 +4,10 @@ using System.Runtime.CompilerServices;
 
 namespace FxResult.ResultExtensions;
 
-/// <summary>
-/// Synchronous exception-safe transformations for <see cref="Result{T}"/>.
-/// </summary>
+/// <summary>Sync exception-safe transforms. Catches exceptions and returns Error.</summary>
 public static partial class ThenExtensions
 {
-    /// <summary>
-    /// Try/catch-safe <see cref="Result{TOut}"/>-returning transformation.
-    /// </summary>
+    /// <summary>Exception-safe Result-returning transform. Example: <c>result.ThenTry(x =&gt; Parse(x))</c></summary>
     public static Result<TOut> ThenTry<TIn, TOut>(
         this Result<TIn> result,
         Func<TIn, Result<TOut>> transform,
@@ -36,9 +32,7 @@ public static partial class ThenExtensions
         }
     }
 
-    /// <summary>
-    /// Try/catch-safe synchronous transformation.
-    /// </summary>
+    /// <summary>Exception-safe value transform. Example: <c>result.ThenTry(int.Parse)</c></summary>
     public static Result<TOut> ThenTry<TIn, TOut>(
         this Result<TIn> result,
         Func<TIn, TOut> transform,
@@ -63,10 +57,7 @@ public static partial class ThenExtensions
         }
     }
 
-    /// <summary>
-    /// Exception-safe transformation with result capture.
-    /// Returns the transformed result and assigns it to an <c>out</c> parameter.
-    /// </summary>
+    /// <summary>Exception-safe transform with out capture. Example: <c>result.ThenTry(Parse, out var parsed)</c></summary>
     public static Result<TOut> ThenTry<TIn, TOut>(
         this Result<TIn> result,
         Func<TIn, TOut> transform,
@@ -78,11 +69,9 @@ public static partial class ThenExtensions
         return capturedResult;
     }
 
-    /// <summary>
-    /// Synchronous exception-safe transformation for <see cref="Result{Unit}"/>.
-    /// </summary>
-    public static Result<Unit> ThenTry(
-        this Result<Unit> result,
+    /// <summary>Exception-safe action on Result{Unit}. Example: <c>unitResult.ThenTry(() =&gt; File.Delete(path))</c></summary>
+    public static Result<RUnit> ThenTry(
+        this Result<RUnit> result,
         Action action,
         string? source = null,
         [CallerMemberName] string? caller = null)
@@ -92,11 +81,11 @@ public static partial class ThenExtensions
         try
         {
             action();
-            return Result<Unit>.Success(Unit.Value, result.Meta);
+            return Result<RUnit>.Success(RUnit.Value, result.Meta);
         }
         catch (Exception ex)
         {
-            return Result<Unit>.Fail(ex, ex.GetType().Name, source, caller)
+            return Result<RUnit>.Fail(ex, ex.GetType().Name, source, caller)
                 .WithMeta(result.Meta);
         }
     }

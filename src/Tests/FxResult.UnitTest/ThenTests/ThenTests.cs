@@ -343,7 +343,7 @@ public class ThenTests
     {
         var result = Result<int>.Success(1)
             .Tap(out var capturedResult)
-            .Then(_ => Unit.Value)
+            .Then(_ => RUnit.Value)
             .Then(x => capturedResult.Value + 41);
 
 
@@ -372,7 +372,7 @@ public class ThenTests
     public void Then_Unit_Action_ShouldExecute_WhenSuccess()
     {
         var meta = new MetaInfo(correlationId: "corr");
-        var result = Result<Unit>.Success(Unit.Value, meta);
+        var result = Result<RUnit>.Success(RUnit.Value, meta);
         var called = false;
 
         var next = result.Then(() => called = true);
@@ -388,7 +388,7 @@ public class ThenTests
     [Test]
     public void Then_Unit_Action_DoesNotExecute_WhenFailure()
     {
-        var result = Result<Unit>.Fail("fail");
+        var result = Result<RUnit>.Fail("fail");
         var called = false;
 
         var next = result.Then(() => called = true);
@@ -403,7 +403,7 @@ public class ThenTests
     [Test]
     public void Then_Unit_ResultReturning_ShouldReturnTransform_WhenSuccess()
     {
-        var result = Result<Unit>.Success(Unit.Value);
+        var result = Result<RUnit>.Success(RUnit.Value);
 
         var next = result.Then(() => Result<string>.Success("ok"));
 
@@ -414,7 +414,7 @@ public class ThenTests
     [Test]
     public void Then_Unit_ResultReturning_PropagatesFailure()
     {
-        var result = Result<Unit>.Fail("fail");
+        var result = Result<RUnit>.Fail("fail");
 
         var next = result.Then(() => Result<string>.Success("ok"));
 
@@ -425,7 +425,7 @@ public class ThenTests
     [Test]
     public void ThenTry_Unit_Action_ReturnsSuccess_WhenNoException()
     {
-        var result = Result<Unit>.Success(Unit.Value);
+        var result = Result<RUnit>.Success(RUnit.Value);
         var called = false;
 
         var next = result.ThenTry(() => called = true);
@@ -440,7 +440,7 @@ public class ThenTests
     [Test]
     public void ThenTry_Unit_Action_ReturnsFailure_WhenExceptionThrown()
     {
-        var result = Result<Unit>.Success(Unit.Value);
+        var result = Result<RUnit>.Success(RUnit.Value);
 
         var next = result.ThenTry(() => throw new InvalidOperationException("boom"));
 
@@ -454,7 +454,7 @@ public class ThenTests
     [Test]
     public void ThenTry_Unit_Action_SkipsOnFailure()
     {
-        var result = Result<Unit>.Fail("already failed");
+        var result = Result<RUnit>.Fail("already failed");
         var called = false;
 
         var next = result.ThenTry(() => called = true);

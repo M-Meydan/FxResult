@@ -3,26 +3,11 @@ using FxResult.Core;
 
 namespace FxResult.ResultExtensions;
 
-/// <summary>
-/// Synchronous chaining transformations for <see cref="Result{T}"/>.
-/// These methods are pure and do not include exception handling — use <c>ThenTry</c> for fallible operations.
-/// </summary>
-/// <remarks>
-/// Examples:
-/// <code>
-/// var res2 = res1.Then(x => x.Length);
-/// var res3 = res2.Then(x => Parse(x));
-/// var res4 = res3.Then(x => x * 2, out var original);
-/// // res4: transformed result, original: previous result
-/// </code>
-/// </remarks>
+/// <summary>Sync chaining for Result{T}. Use <c>ThenTry</c> for fallible operations.</summary>
 [ExcludeFromCodeCoverage]
 public static partial class ThenExtensions
 {
-    /// <summary>
-    /// Chains a transformation if the result is successful.
-    /// This method does not catch exceptions — use <c>ThenTry</c> for fallible logic.
-    /// </summary>
+    /// <summary>Transforms the value if successful. Example: <c>result.Then(x =&gt; x * 2)</c></summary>
     public static Result<TOut> Then<TIn, TOut>(this Result<TIn> result, Func<TIn, TOut> transform)
     {
         if (result.TryGetValue(out var value))
@@ -34,30 +19,21 @@ public static partial class ThenExtensions
         return Result<TOut>.Fail(result.Error, result.Meta);
     }
 
-    /// <summary>
-    /// Chains another <see cref="Result{TOut}"/>-returning transformation.
-    /// This method does not catch exceptions — use <c>ThenTry</c> for fallible logic.
-    /// </summary>
+    /// <summary>Chains a Result-returning transform. Example: <c>result.Then(x =&gt; Validate(x))</c></summary>
     public static Result<TOut> Then<TIn, TOut>(this Result<TIn> result, Func<TIn, Result<TOut>> transform)
         => result.TryGetValue(out var value)
             ? transform(value!)
             : Result<TOut>.Fail(result.Error, result.Meta);
 
-    /// <summary>
-    /// Chains a transformation and exposes the transformed result via an <c>out</c> parameter.
-    /// This method does not catch exceptions — use <c>ThenTry</c> for fallible logic.
-    /// </summary>
+    /// <summary>Transforms and captures via out. Example: <c>result.Then(x =&gt; x * 2, out var prev)</c></summary>
     public static Result<TOut> Then<TIn, TOut>(this Result<TIn> result, Func<TIn, TOut> transform, out Result<TOut> stepResult)
     {
         stepResult = result.Then(transform);
         return stepResult;
     }
 
-    /// <summary>
-    /// Chains a transformation if the <see cref="Result{Unit}"/> is successful.
-    /// This method does not catch exceptions — use <c>ThenTry</c> for fallible logic.
-    /// </summary>
-    public static Result<TOut> Then<TOut>(this Result<Unit> result, Func<TOut> transform)
+    /// <summary>Chains a transform on Result{Unit}. Example: <c>unitResult.Then(() =&gt; 42)</c></summary>
+    public static Result<TOut> Then<TOut>(this Result<RUnit> result, Func<TOut> transform)
     {
         if (result.IsSuccess)
         {
@@ -67,24 +43,18 @@ public static partial class ThenExtensions
         return Result<TOut>.Fail(result.Error, result.Meta);
     }
 
-    /// <summary>
-    /// Chains another <see cref="Result{TOut}"/>-returning transformation if the <see cref="Result{Unit}"/> is successful.
-    /// This method does not catch exceptions — use <c>ThenTry</c> for fallible logic.
-    /// </summary>
-    public static Result<TOut> Then<TOut>(this Result<Unit> result, Func<Result<TOut>> transform)
+    /// <summary>Chains a Result-returning transform on Result{Unit}. Example: <c>unitResult.Then(() =&gt; LoadData())</c></summary>
+    public static Result<TOut> Then<TOut>(this Result<RUnit> result, Func<Result<TOut>> transform)
         => result.IsSuccess
             ? transform()
             : Result<TOut>.Fail(result.Error, result.Meta);
 
-    /// <summary>
-    /// Chains an action when the input <see cref="Result{Unit}"/> is successful.
-    /// Use for void-style continuations. Exceptions thrown by <paramref name="action"/> are not caught by this method.
-    /// </summary>
-    public static Result<Unit> Then(this Result<Unit> result, Action action)
+    /// <summary>Runs an action on Result{Unit} success. Example: <c>unitResult.Then(() =&gt; Save())</c></summary>
+    public static Result<RUnit> Then(this Result<RUnit> result, Action action)
     {
         if (result.IsFailure) return result;
 
         action();
-        return Result<Unit>.Success(Unit.Value, result.Meta);
+        return Result<RUnit>.Success(RUnit.Value, result.Meta);
     }
 }

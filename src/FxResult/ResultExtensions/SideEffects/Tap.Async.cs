@@ -3,14 +3,10 @@ using System.Runtime.CompilerServices;
 
 namespace FxResult.ResultExtensions;
 
-/// <summary>
-/// Side-effect and result/value capture extensions for Result{T}.
-/// </summary>
+/// <summary>Async side-effect extensions for Result{T}.</summary>
 public static partial class TapExtensions
 {
-    /// <summary>
-    /// Runs a side-effect if the result is successful (result unchanged).
-    /// </summary>
+    /// <summary>Awaits task, then runs sync side-effect on success.</summary>
     public static async Task<Result<T>> TapAsync<T>(
         this Task<Result<T>> resultTask,
         Action<T> action,
@@ -21,9 +17,7 @@ public static partial class TapExtensions
         return result.Tap(action, source, caller);
     }
 
-    /// <summary>
-    /// Runs an async side-effect if the result is successful (result unchanged).
-    /// </summary>
+    /// <summary>Runs async side-effect on success. Example: <c>result.TapAsync(x =&gt; LogAsync(x))</c></summary>
     public static async Task<Result<T>> TapAsync<T>(
         this Result<T> result,
         Func<T, Task> action,
@@ -46,9 +40,7 @@ public static partial class TapExtensions
         return result;
     }
 
-    /// <summary>
-    /// Runs an async side-effect if the result is successful (result unchanged) (CancellationToken support).
-    /// </summary>
+    /// <summary>Runs async side-effect on success with CancellationToken.</summary>
     public static async Task<Result<T>> TapAsync<T>(
         this Result<T> result,
         Func<T, CancellationToken, Task> action,
@@ -72,9 +64,7 @@ public static partial class TapExtensions
         return result;
     }
 
-    /// <summary>
-    /// Executes an async side-effect on the successful value of a <c>Task&lt;Result&lt;T&gt;&gt;</c>.
-    /// </summary>
+    /// <summary>Awaits task, then runs async side-effect on success.</summary>
     public static async Task<Result<T>> TapAsync<T>(
         this Task<Result<T>> resultTask,
         Func<T, Task> action,
@@ -85,9 +75,7 @@ public static partial class TapExtensions
         return await result.TapAsync(action, source, caller).ConfigureAwait(false);
     }
 
-    /// <summary>
-    /// Executes an async side-effect on the successful value of a <c>Task&lt;Result&lt;T&gt;&gt;</c> (CancellationToken support).
-    /// </summary>
+    /// <summary>Awaits task, then runs async side-effect on success with CancellationToken.</summary>
     public static async Task<Result<T>> TapAsync<T>(
         this Task<Result<T>> resultTask,
         Func<T, CancellationToken, Task> action,

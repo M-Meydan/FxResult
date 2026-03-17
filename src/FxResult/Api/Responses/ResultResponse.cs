@@ -1,11 +1,13 @@
 ﻿using FxResult.Api.Responses.Extensions;
 using FxResult.Core;
+using System.Diagnostics.CodeAnalysis;
 
 namespace FxResult.Api.Responses;
 /// <summary>
 /// DTO structure for API responses containing data or errors.
 /// </summary>
 /// <typeparam name="T">The type of data.</typeparam>
+[ExcludeFromCodeCoverage]
 public class ResultResponse<T>
 {
     public T? Data { get; set; }

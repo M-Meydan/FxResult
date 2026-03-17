@@ -33,6 +33,7 @@ Provides fluent, safe result handling without exceptions for flow control.
   - [Tap: Side Effects & Capture](#tap-side-effects--capture)
   - [FailIf: Guard Conditions](#failif-guard-conditions)
   - [Ensure: Business Invariants](#ensure-business-invariants)
+  - [If / ElseIf / Else: Conditional Branching](#if--elseif--else-conditional-branching)
   - [Try: Exception-Safe Factory](#try-exception-safe-factory)
   - [ThenTry: Exception-Safe Wrapping](#thentry-exception-safe-wrapping)
   - [OnSuccess, OnFailure, OnFinally: Pipeline Outcome Hooks](#onsuccess-onfailure-onfinally-pipeline-outcome-hooks)
@@ -46,7 +47,7 @@ Provides fluent, safe result handling without exceptions for flow control.
 ## Version
 
 **Latest:** `v1.1.2`  
-**Status:** Stable — Actively Maintained  
+**Status:** Stable - Actively Maintained  
 
 ---
 
@@ -78,15 +79,17 @@ FxResult simplifies business logic, improves consistency, and enables safe, expr
 FxResult offers a rich set of features designed to streamline functional error handling and data flow in .NET applications:
 
 - **Core Types**\
-	`Result<Unit>` (for void operations), `Result<T>` (for operations returning a value), and a structured `Error` object.
+	`Result<RUnit>` (for void operations), `Result<T>` (for operations returning a value), and a structured `Error` object.
 - **Unified Exception-Safe Factory**\
-	Use Result.Try() and Result.TryAsync() to wrap logic into safe Result<T> or Result<Unit> outcomes.
+    Use `Result<T>.Try()` and `Result<T>.TryAsync()` to wrap logic into safe `Result<T>` or `Result<RUnit>` outcomes.
 - **Fluent Chaining**\
 	Methods like `Then`, `ThenTry`, `Tap`, `FailIf`, and `Ensure` for building expressive, exception-safe pipelines.
+- **Conditional Branching**\
+	`.If()` / `.ElseIf()` / `.Else()` for type-safe multi-branch routing within the pipeline (sync + async).
 - **Async-First Design**\
 	Full `async/await` support for non-blocking operations.
 - **Side-Effect Hooks**\
- `.OnSuccess()`, `.OnFailure()`, and `.OnFinally()` to react to pipeline outcomes without breaking the flow.
+	`.OnSuccess()`, `.OnFailure()`, and `.OnFinally()` to react to pipeline outcomes without breaking the flow.
 - **API-Layer DTO Conversion**\
 	Seamless conversion to API-friendly DTOs (`ToResponseDto`, `ToPublicDto`).
 - **Custom Error Types**\
@@ -113,9 +116,9 @@ Install-Package FxResult
 
 ## Result Types
 
-`Result<Unit>` and `Result<T>` are the foundation of FxResult. They represent the outcome of an operation — either success or failure — without relying on exceptions. They also support implicit conversions for simplified usage.
+`Result<RUnit>` and `Result<T>` are the foundation of FxResult. They represent the outcome of an operation - either success or failure - without relying on exceptions. They also support implicit conversions for simplified usage.
 
-- **`Result<Unit>`**: Used when there's no return value, just success/failure. `Unit.Value` represents the successful void result.
+- **`Result<RUnit>`**: Used when there's no return value, just success/failure. `RUnit.Value` represents the successful void result.
 - **`Result<T>`**: Used when the operation returns a value (`T`) on success, or an `Error` on failure.
 
 ---
@@ -124,10 +127,10 @@ Install-Package FxResult
 
 ```csharp
 // Creating a successful void result
-var ok = Result<Unit>.Success(Unit.Value);
+var ok = Result<RUnit>.Success(RUnit.Value);
 
 // Creating a failed void result
-var fail = Result<Unit>.Fail("Something went wrong");
+var fail = Result<RUnit>.Fail("Something went wrong");
 
 // Creating a successful result with a value
 var val = Result<int>.Success(42);
@@ -137,7 +140,7 @@ var err = Result<string>.Fail(new Error("INVALID", "Missing field"));
 
 // Safe execution wrapper using Try
 var loaded = Result<string>.Try(() => LoadUserFile("users.json"));
-var created = await Result<Unit>.TryAsync(() => CreateInitialUsers());
+var created = await Result<RUnit>.TryAsync(() => CreateInitialUsers());
 
 // Implicit conversion from value to success result
 Result<int> implicitVal = 100;
@@ -161,16 +164,16 @@ Result<string> failed = implicitErr;     // Error → failed Result<T>
 | `Meta`                      | `MetaInfo`  | Metadata (pagination, trace, additional); never null, defaults to empty  |
 | `TryGetValue(out T? value)` | `bool`      | Returns `true` if successful and sets `value`; otherwise returns `false` |
 
-`Result<T>` implements `IResult` — a non-generic interface exposing `IsSuccess`, `Error`, `Meta`, and `ValueObject` for use in API filters and middleware without knowing `T`.
+`Result<T>` implements `IResult` - a non-generic interface exposing `IsSuccess`, `Error`, `Meta`, and `ValueObject` for use in API filters and middleware without knowing `T`.
 
 ---
 
 ## Metadata Support with MetaInfo
 
-`Result<T>` supports attaching structured metadata using `MetaInfo` — a `readonly record struct` with two dictionaries:
+`Result<T>` supports attaching structured metadata using `MetaInfo` - a `readonly record struct` with two dictionaries:
 
-- **`Additional`** — public metadata safe for API responses (e.g. business identifiers)
-- **`Trace`** — internal diagnostics for structured logging only (never sent to the client)
+- **`Additional`** - public metadata safe for API responses (e.g. business identifiers)
+- **`Trace`** - internal diagnostics for structured logging only (never sent to the client)
 
 Both are `ImmutableDictionary<string, object?>`. The `WithMeta()` and `WithMetaData()` extensions return a *new* `Result<T>` instance, preserving immutability.
 
@@ -282,7 +285,7 @@ var response = result.ToResponseDto();
 
 # Error Results
 
-`Error` provides structured failure metadata — `Code`, `Message`, `Source`, `Caller`, and `Exception` — to simplify control flow, support clear logging, and enable rich diagnostics.
+`Error` provides structured failure metadata - `Code`, `Message`, `Source`, `Caller`, and `Exception` - to simplify control flow, support clear logging, and enable rich diagnostics.
 
 
 ## Error Properties
@@ -393,11 +396,12 @@ result.OnFailure(r =>
 | ------------------------------------------------------| -------------------------- |
 | Use `.FailIf()` for early exits             			| Guard logic stays readable |
 | Use `.Ensure()` for business invariants     			| Centralizes domain rules   |
+| Use `.If()` / `.ElseIf()` / `.Else()` for routing	| Clean branching without manual if/else |
 | Prefer .Try() or .ThenTry() for fallible operations 	| Avoids manual try/catch    |
 | Avoid mixing sync & async                   			| Prevents type confusion    |
 | Always include `Code`, `Source`, `Caller`   			| For traceability           |
 | Use `.WithContext()` when bubbling errors   			| Adds clarity across layers |
-| Use `Result<Unit>` instead of bare `Result` 			| Enables fluent consistency |
+| Use `Result<RUnit>` instead of bare `Result` 			| Enables fluent consistency |
 
 
 ## Fluent Extensions
@@ -410,31 +414,27 @@ Each extension is grouped by its role in the pipeline, and every method supports
 
 Every step returns a `Result<T>`. On success the value flows forward. On failure the chain **short-circuits** — remaining steps are skipped and the error propagates unchanged until a hook handles it.
 
-```
- ✅ Success path ─────────────────────────────────────────────────────────┐
-                                                                          │
-  Try/Then ──▶ Ensure/FailIf ──▶ ThenTry/ThenAsync ──▶ Tap ──▶ Then     │
-     │              │                   │                │        │       │
-     │ ok           │ ok                │ ❌ FAIL        │skip    │skip   │
-     └──────────────┘                   │                │        │       │
-                                        ▼                ▼        ▼       │
-                                   Error propagates (all steps skipped)   │
-                                        │                                 │
-                                        ▼                                 ▼
-                                 ┌─────────────┐                ┌──────────────┐
-                                 │ .OnFailure() │                │ .OnSuccess() │
-                                 │  recover/log │                │  commit/log  │
-                                 └──────┬───────┘                └──────┬───────┘
-                                        │                               │
-                                        └───────────┬───────────────────┘
-                                                    ▼
-                                             ┌─────────────┐
-                                             │ .OnFinally() │ ◀── always runs
-                                             └─────────────┘
+```mermaid
+flowchart TD
+    A["Try / Then"] -->|ok| B["Ensure / FailIf"]
+    B -->|ok| C["If / ElseIf / Else"]
+    C -->|ok| D["Tap"]
+    D -->|ok| E["Then"]
+
+    B -->|FAIL| ERR["Error propagates\n(all steps skipped)"]
+    C -->|FAIL| ERR
+    D -->|skip| ERR
+    E -->|skip| ERR
+
+    ERR --> F[".OnFailure()\nrecover / log"]
+    E --> G[".OnSuccess()\ncommit / log"]
+
+    F --> H[".OnFinally()\nalways runs"]
+    G --> H
 ```
 
 This ensures:
-- Predictable execution — no hidden branches
+- Predictable execution - no hidden branches
 - No side effects after failure (`.Then`/`.Tap` are skipped)
 - Clean, readable logic without manual branching
 
@@ -479,11 +479,11 @@ var res = Result<int>.Success(10)
 
 **Variants**
 
-- `.Then(...)` — simple transform
-- `.Then(x => Result<T>)` — chained operation
-- `.ThenTry(...)` — exception-safe version
-- `.ThenAsync(...)` / `.ThenTryAsync(...)` — for `Task<Result<T>>` support
-- `out var` — capture intermediate result
+- `.Then(...)` - simple transform
+- `.Then(x => Result<T>)` - chained operation
+- `.ThenTry(...)` - exception-safe version
+- `.ThenAsync(...)` / `.ThenTryAsync(...)` - for `Task<Result<T>>` support
+- `out var` - capture intermediate result
 
 ### Tap: Side Effects & Capture
 Use to log, trace, publish events, or inspect without changing the value. `Tap` methods are designed for side-effects and always return the original `Result` (or a new `Result` if an exception occurs within the `Action`).
@@ -514,8 +514,8 @@ Use to reject values based on rule violations or preconditions. `FailIf` is idea
 **Variants**
 - `.FailIf(predicate, code, message)`
 - `.FailIf(condition, code, message)`
-- `.FailIfNull(...)` — convert nullables to failure
-- `.FailIfAsync(...)` — for async predicates
+- `.FailIfNull(...)` - convert nullables to failure
+- `.FailIfAsync(...)` - for async predicates
 
 ### Ensure: Business Invariants
 Use to enforce core domain rules (e.g., "user must be active"). `Ensure` is ideal for post-conditions or invariants (fail if something is *not* true).
@@ -526,7 +526,37 @@ Use to enforce core domain rules (e.g., "user must be active"). `Ensure` is idea
 
 **Variants**
 - `.Ensure(predicate, code, message)`
-- `.EnsureAsync(...)` — async checks
+- `.EnsureAsync(...)` - async checks
+
+### If / ElseIf / Else: Conditional Branching
+Use to route values through different processing paths based on predicates. The type system enforces that `.ElseIf()` and `.Else()` can only follow an `.If()` - compile-time safety, no runtime surprises.
+
+```csharp
+// Route by value — types are inferred, no explicit type args needed
+var result = Result<int>.Success(75)
+    .If(x => x > 100, x => ApplyPremiumRate(x))
+    .ElseIf(x => x > 50, x => ApplyStandardRate(x))
+    .Else(x => ApplyBaseRate(x));
+
+// Continue chaining after branching (Else returns Result<T>)
+var receipt = Result<int>.Success(75)
+    .If(x => x > 100, ApplyPremiumRate)
+    .ElseIf(x => x > 50, ApplyStandardRate)
+    .Else(ApplyBaseRate)
+    .Then(FormatReceipt)
+    .Tap(r => Log(r));
+
+// Fail if no branch matches (terminate chain with error)
+var result = Result<int>.Success(10)
+    .If(x => x > 100, x => ProcessHighValue(x))
+    .Else(x => Result<int>.Fail(new Error("OUT_OF_RANGE", "Value too low")));
+```
+
+**Variants**
+- `.If()` / `.ElseIf()` / `.Else()` - sync branching
+- `.IfAsync()` / `.ElseIfAsync()` / `.ElseAsync()` - async branch actions
+- `.Else(x => Result<T>.Fail(error))` - terminate with failure if no branch matched
+- Works on `Task<Result<T>>` pipelines (async chaining)
 
 ### Try: Exception-Safe Factory
 Use `Result.Try(...)` or `Result.TryAsync(...)` to wrap any fallible logic (e.g., parsing, deserialization, I/O, external calls) into a `Result<T>` without using `try/catch` in your business flow.
@@ -538,14 +568,14 @@ var result = Result<string>.Try(() => File.ReadAllText("file.txt"));
 // Async
 var result = await Result<string>.TryAsync(() => File.ReadAllTextAsync("file.txt"));
 
-// Void return using Unit
-var result = Result<Unit>.Try(() => File.Delete("temp.log"));
+// Void return using RUnit
+var result = Result<RUnit>.Try(() => File.Delete("temp.log"));
 ```
 
 **Behavior**
 - If the function runs successfully, a success Result<T> is returned
 - If it throws, the exception is captured into an Error
-- Supports Unit for Action and Func<Task> overloads
+- Supports `RUnit` for `Action` and `Func<Task>` overloads
 - Also usable as a starting point for fluent chains
 
 
@@ -577,6 +607,7 @@ They enable logging, recovery, auditing, and tracing after core logic execution.
 
 **Example of Chained Extensions**
 ```csharp
+// File processing with validation
 var result = await Result<string>.Success("path/to/file")
     .ThenTryAsync(File.ReadAllTextAsync)
     .TapAsync(content => LogAsync(content))
@@ -585,6 +616,16 @@ var result = await Result<string>.Success("path/to/file")
     .OnSuccess(r => { LogInfo(r.Value); return r; })
     .OnFailure(r => { HandleError(r.Error); return r; })
     .OnFinally(r => { Log("Completed read"); return r; });
+
+// Order processing with conditional branching
+var result = Result<Order>.Try(() => LoadOrder(orderId))
+    .Ensure(o => o.Items.Any(), "EMPTY_ORDER", "Order has no items")
+    .If(o => o.Total > 1000, ApplyBulkDiscount)
+    .ElseIf(o => o.IsMember, ApplyMemberDiscount)
+    .Else(ApplyStandardPricing)
+    .Then(CalculateTax)
+    .TapAsync(o => SendConfirmationAsync(o))
+    .OnFailure(r => { Log(r.Error); return r; });
 ```
 ---
 ## Ideal Use Cases
@@ -596,13 +637,13 @@ var result = await Result<string>.Success("path/to/file")
 - **Background Jobs with Retry + Audit**: Facilitates reliable execution and tracking of long-running tasks.
 
 
-## 👤 Author
+## Author
 
 Developed with scalability, maintainability, and clarity in mind. Contributions and feedback are welcome.
 By Muhsin Meydan
 
 
-## 🛠 License
+## License
 
 MIT License. Use freely in commercial or OSS projects.
 

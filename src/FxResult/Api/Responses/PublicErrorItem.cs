@@ -1,8 +1,11 @@
-﻿namespace FxResult.Api.Responses;
+﻿using System.Diagnostics.CodeAnalysis;
+
+namespace FxResult.Api.Responses;
 
 /// <summary>
 /// DTO structure for converting internal errors to API-safe output.
 /// </summary>
+[ExcludeFromCodeCoverage]
 public class PublicErrorItem
 {
     public PublicErrorItem() {}

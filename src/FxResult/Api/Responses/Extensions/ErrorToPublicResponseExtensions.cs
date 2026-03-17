@@ -1,16 +1,11 @@
-﻿using FxResult.Api.Responses;
-using FxResult.Core;
+﻿using FxResult.Core;
 
 namespace FxResult.Api.Responses.Extensions;
 
-/// <summary>
-/// Extension methods for converting internal errors to public DTOs.
-/// </summary>
+/// <summary>Converts internal Error to public-safe DTO.</summary>
 public static class ErrorToPublicResponseExtensions
 {
-    /// <summary>
-    /// Converts an internal <see cref="Error"/> to a public <see cref="PublicErrorResponse"/>.
-    /// </summary>
+    /// <summary>Maps Error to PublicErrorResponse. Example: <c>error.ToPublicDto()</c></summary>
     public static PublicErrorResponse ToPublicDto(this Error? error)
     {
         if (error == null)

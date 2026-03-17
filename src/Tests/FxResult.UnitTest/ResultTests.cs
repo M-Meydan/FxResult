@@ -198,16 +198,16 @@ namespace FxResult.UnitTest
         [Test]
         public void Try_Action_ReturnsSuccess_WhenNoException()
         {
-            var result = Result<Unit>.Try(() => Unit.Value);
+            var result = Result<RUnit>.Try(() => RUnit.Value);
 
             Assert.That(result.IsSuccess, Is.True);
-            Assert.That(result.Value, Is.EqualTo(Unit.Value));
+            Assert.That(result.Value, Is.EqualTo(RUnit.Value));
         }
 
         [Test]
         public void Try_Action_ReturnsFailure_WhenExceptionThrown()
         {
-            var result = Result<Unit>.Try(() => throw new ApplicationException("fail"));
+            var result = Result<RUnit>.Try(() => throw new ApplicationException("fail"));
 
             Assert.That(result.IsFailure, Is.True);
             Assert.That(result.Error!.Message, Is.EqualTo("fail"));
@@ -217,20 +217,20 @@ namespace FxResult.UnitTest
         public async Task TryAsync_Action_ReturnsSuccess_WhenNoException()
         {
             // Fix: Adjust the lambda expression to return the correct type
-            var result = await Result<Unit>.TryAsync(async () =>
+            var result = await Result<RUnit>.TryAsync(async () =>
             {
                 await Task.Delay(1); // Simulate async operation
-                return Unit.Value; // Return Unit.Value directly
+                return RUnit.Value; // Return Unit.Value directly
             });
 
             Assert.That(result.IsSuccess, Is.True);
-            Assert.That(result.Value, Is.EqualTo(Unit.Value));
+            Assert.That(result.Value, Is.EqualTo(RUnit.Value));
         }
 
         [Test]
         public async Task TryAsync_Action_ReturnsFailure_WhenExceptionThrown()
         {
-            var result = await Result<Unit>.TryAsync(() => throw new Exception("error"));
+            var result = await Result<RUnit>.TryAsync(() => throw new Exception("error"));
 
             Assert.That(result.IsFailure, Is.True);
             Assert.That(result.Error!.Message, Is.EqualTo("error"));

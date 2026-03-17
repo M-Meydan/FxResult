@@ -187,10 +187,10 @@ public class ThenAsyncTests : ResultTestBase
     }
 
     // Helper that returns Result<Unit>
-    private Result<Unit> PublishSideEffect(int value, List<string> log)
+    private Result<RUnit> PublishSideEffect(int value, List<string> log)
     {
         log.Add($"Published value: {value}");
-        return Unit.Value;
+        return RUnit.Value;
     }
 
     [Test]
@@ -256,7 +256,7 @@ public class ThenAsyncTests : ResultTestBase
     [Test]
     public async Task ThenAsync_Unit_FuncTask_ExecutesOnSuccess()
     {
-        var result = Result<Unit>.Success(Unit.Value);
+        var result = Result<RUnit>.Success(RUnit.Value);
 
         var next = await result.ThenAsync(async () =>
         {
@@ -271,7 +271,7 @@ public class ThenAsyncTests : ResultTestBase
     [Test]
     public async Task ThenAsync_Unit_FuncTask_PropagatesFailure()
     {
-        var result = Result<Unit>.Fail("fail");
+        var result = Result<RUnit>.Fail("fail");
 
         var next = await result.ThenAsync(async () =>
         {
@@ -286,7 +286,7 @@ public class ThenAsyncTests : ResultTestBase
     [Test]
     public async Task ThenAsync_Unit_FuncCancellationTokenTask_PassesToken()
     {
-        var result = Result<Unit>.Success(Unit.Value);
+        var result = Result<RUnit>.Success(RUnit.Value);
         using var cts = new CancellationTokenSource();
         var observed = CancellationToken.None;
 
@@ -308,7 +308,7 @@ public class ThenAsyncTests : ResultTestBase
     [Test]
     public async Task ThenAsync_Unit_ResultReturning_ExecutesOnSuccess()
     {
-        var result = Result<Unit>.Success(Unit.Value);
+        var result = Result<RUnit>.Success(RUnit.Value);
 
         var next = await result.ThenAsync(async () =>
         {
@@ -323,7 +323,7 @@ public class ThenAsyncTests : ResultTestBase
     [Test]
     public async Task ThenAsync_Unit_ResultReturning_PropagatesFailure()
     {
-        var result = Result<Unit>.Fail("fail");
+        var result = Result<RUnit>.Fail("fail");
 
         var next = await result.ThenAsync(async () =>
         {
@@ -337,7 +337,7 @@ public class ThenAsyncTests : ResultTestBase
     [Test]
     public async Task ThenAsync_Unit_ActionTask_ExecutesOnSuccess()
     {
-        var result = Result<Unit>.Success(Unit.Value);
+        var result = Result<RUnit>.Success(RUnit.Value);
         var called = false;
 
         var next = await result.ThenAsync(async () =>
@@ -353,7 +353,7 @@ public class ThenAsyncTests : ResultTestBase
     [Test]
     public async Task ThenAsync_Unit_ActionTask_SkipsOnFailure()
     {
-        var result = Result<Unit>.Fail("fail");
+        var result = Result<RUnit>.Fail("fail");
         var called = false;
 
         var next = await result.ThenAsync(async () =>
@@ -369,7 +369,7 @@ public class ThenAsyncTests : ResultTestBase
     [Test]
     public async Task ThenAsync_Unit_ActionCancellationTokenTask_PassesToken()
     {
-        var result = Result<Unit>.Success(Unit.Value);
+        var result = Result<RUnit>.Success(RUnit.Value);
         using var cts = new CancellationTokenSource();
         var observed = CancellationToken.None;
 
@@ -387,10 +387,10 @@ public class ThenAsyncTests : ResultTestBase
     }
 
     // Async Result<Unit> for logging
-    private Task<Result<Unit>> LogCompletionAsync(List<string> log)
+    private Task<Result<RUnit>> LogCompletionAsync(List<string> log)
     {
         log.Add("Completed pipeline");
-        return Task.FromResult(new Result<Unit>(Unit.Value));
+        return Task.FromResult(new Result<RUnit>(RUnit.Value));
     }
 }
     

@@ -5,16 +5,11 @@ using System.Runtime.CompilerServices;
 
 namespace FxResult.ResultExtensions.Helpers;
 
-/// <summary>
-/// Extension methods for projecting paginated data into a <see cref="Result{T}"/> with pagination metadata.
-/// </summary>
+/// <summary>Pagination helpers that return Result{List{T}} with PaginationInfo in Meta.</summary>
 [ExcludeFromCodeCoverage]
 public static partial class ResultPaginationExtensions
 {
-    /// <summary>
-    /// Projects a paginated <see cref="IQueryable{T}"/> into a <see cref="Result{T}"/> containing a <see cref="List{T}"/>
-    /// and pagination metadata stored in <see cref="MetaInfo"/>.
-    /// </summary>
+    /// <summary>Pages an IQueryable (SQL Skip/Take). Example: <c>db.Users.ToPagedResult(page: 1, pageSize: 10)</c></summary>
     public static Result<List<T>> ToPagedResult<T>(
         this IQueryable<T> query,
         int page,
@@ -42,10 +37,7 @@ public static partial class ResultPaginationExtensions
         }
     }
 
-    /// <summary>
-    /// Projects a paginated <see cref="IEnumerable{T}"/> into a <see cref="Result{T}"/> containing a <see cref="List{T}"/>
-    /// and pagination metadata stored in <see cref="MetaInfo"/>.
-    /// </summary>
+    /// <summary>Pages an IEnumerable (in-memory). Example: <c>list.ToPagedResult(page: 1, pageSize: 10)</c></summary>
     public static Result<List<T>> ToPagedResult<T>(
         this IEnumerable<T> source,
         int page,

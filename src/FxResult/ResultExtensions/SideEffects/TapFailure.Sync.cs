@@ -1,19 +1,13 @@
 using FxResult.Core;
 using FxResult.Core.Meta;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 namespace FxResult.ResultExtensions;
 
-/// <summary>
-/// Side-effect extensions for failure paths.
-/// </summary>
+/// <summary>Failure side-effect extensions — logging/telemetry without changing the result.</summary>
 public static partial class TapExtensions
 {
-    /// <summary>
-    /// Runs a side-effect if the result is a failure. The result is returned unchanged.
-    /// Intended for logging/telemetry.
-    /// </summary>
+    /// <summary>Runs a side-effect on failure (unchanged). Example: <c>result.TapFailure((err, meta) =&gt; Log(err))</c></summary>
     public static Result<T> TapFailure<T>(
         this Result<T> result,
         Action<Error, MetaInfo> action,
@@ -35,10 +29,7 @@ public static partial class TapExtensions
         return result;
     }
 
-    /// <summary>
-    /// Asynchronous version of <see cref="TapFailure{T}(Result{T}, Action{Error, MetaInfo}, string?, string?)"/>.
-    /// Awaits the task, then runs the same side-effect if the result is a failure.
-    /// </summary>
+    /// <summary>Awaits task, then runs sync side-effect on failure.</summary>
     public static async Task<Result<T>> TapFailure<T>(
         this Task<Result<T>> task,
         Action<Error, MetaInfo> action,

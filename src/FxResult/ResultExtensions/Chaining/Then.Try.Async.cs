@@ -3,14 +3,10 @@ using System.Runtime.CompilerServices;
 
 namespace FxResult.ResultExtensions;
 
-/// <summary>
-/// Asynchronous exception-safe transformations for <see cref="Result{T}"/> and Task&lt;Result{T}&gt;.
-/// </summary>
+/// <summary>Async exception-safe transforms. Catches exceptions and returns Error.</summary>
 public static partial class ThenExtensions
 {
-    /// <summary>
-    /// Async chaining — sync exception-safe transform on Task&lt;Result&lt;T&gt;&gt;.
-    /// </summary>
+    /// <summary>Awaits task, then sync exception-safe transform. Example: <c>await task.ThenTry(int.Parse)</c></summary>
     public static async Task<Result<TOut>> ThenTry<TIn, TOut>(
         this Task<Result<TIn>> resultTask,
         Func<TIn, TOut> transform,
@@ -18,9 +14,7 @@ public static partial class ThenExtensions
         [CallerMemberName] string? caller = null)
         => (await resultTask.ConfigureAwait(false)).ThenTry(transform, source, caller);
 
-    /// <summary>
-    /// Async chaining — sync exception-safe Result-returning transform on Task&lt;Result&lt;T&gt;&gt;.
-    /// </summary>
+    /// <summary>Awaits task, then sync exception-safe Result-returning transform.</summary>
     public static async Task<Result<TOut>> ThenTry<TIn, TOut>(
         this Task<Result<TIn>> resultTask,
         Func<TIn, Result<TOut>> transform,
@@ -28,9 +22,7 @@ public static partial class ThenExtensions
         [CallerMemberName] string? caller = null)
         => (await resultTask.ConfigureAwait(false)).ThenTry(transform, source, caller);
 
-    /// <summary>
-    /// Async chaining — async exception-safe transform on Result&lt;T&gt;.
-    /// </summary>
+    /// <summary>Async exception-safe transform. Example: <c>result.ThenTryAsync(x =&gt; FetchAsync(x))</c></summary>
     public static async Task<Result<TOut>> ThenTryAsync<TIn, TOut>(
         this Result<TIn> result,
         Func<TIn, Task<TOut>> transform,
@@ -56,9 +48,7 @@ public static partial class ThenExtensions
         }
     }
 
-    /// <summary>
-    /// Async chaining — async exception-safe Result-returning transform on Result&lt;T&gt;.
-    /// </summary>
+    /// <summary>Async exception-safe Result-returning transform.</summary>
     public static async Task<Result<TOut>> ThenTryAsync<TIn, TOut>(
         this Result<TIn> result,
         Func<TIn, Task<Result<TOut>>> transform,
@@ -83,9 +73,7 @@ public static partial class ThenExtensions
         }
     }
 
-    /// <summary>
-    /// Async chaining — async exception-safe transform on Task&lt;Result&lt;T&gt;&gt;.
-    /// </summary>
+    /// <summary>Awaits task, then async exception-safe transform.</summary>
     public static async Task<Result<TOut>> ThenTryAsync<TIn, TOut>(
         this Task<Result<TIn>> resultTask,
         Func<TIn, Task<TOut>> transform,
@@ -93,9 +81,7 @@ public static partial class ThenExtensions
         [CallerMemberName] string? caller = null)
         => await (await resultTask.ConfigureAwait(false)).ThenTryAsync(transform, source, caller).ConfigureAwait(false);
 
-    /// <summary>
-    /// Async chaining — async exception-safe Result-returning transform on Task&lt;Result&lt;T&gt;&gt;.
-    /// </summary>
+    /// <summary>Awaits task, then async exception-safe Result-returning transform.</summary>
     public static async Task<Result<TOut>> ThenTryAsync<TIn, TOut>(
         this Task<Result<TIn>> resultTask,
         Func<TIn, Task<Result<TOut>>> transform,

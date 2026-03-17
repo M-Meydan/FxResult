@@ -4,14 +4,10 @@ using System.Runtime.CompilerServices;
 
 namespace FxResult.ResultExtensions;
 
-/// <summary>
-/// Async side-effect extensions for failure paths.
-/// </summary>
+/// <summary>Async failure side-effect extensions.</summary>
 public static partial class TapExtensions
 {
-    /// <summary>
-    /// Runs an async side-effect if the result is a failure. The result is returned unchanged.
-    /// </summary>
+    /// <summary>Runs async side-effect on failure. Example: <c>result.TapFailureAsync(async (err, meta) =&gt; await AlertAsync(err))</c></summary>
     public static async Task<Result<T>> TapFailureAsync<T>(
         this Result<T> result,
         Func<Error, MetaInfo, Task> action,
@@ -33,9 +29,7 @@ public static partial class TapExtensions
         return result;
     }
 
-    /// <summary>
-    /// Runs an async side-effect if the awaited result is a failure. The result is returned unchanged.
-    /// </summary>
+    /// <summary>Awaits task, then runs async side-effect on failure.</summary>
     public static async Task<Result<T>> TapFailureAsync<T>(
         this Task<Result<T>> resultTask,
         Func<Error, MetaInfo, Task> action,
